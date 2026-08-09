@@ -1,0 +1,73 @@
+services:
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - nextjs
+      - api
+
+  nextjs:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_MIDTRANS_CLIENT_KEY: ${NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+        NEXT_PUBLIC_MIDTRANS_SNAP_URL: ${NEXT_PUBLIC_MIDTRANS_SNAP_URL}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      # URL internal Go (di dalam Docker network, BUKAN localhost).
+      API_INTERNAL_URL: http://api:8080/api
+      # URL publik yang dipakai browser (nginx port 80). Untuk production
+      # ganti ke domain, mis. https://domain.com. Redirect URI Google yang
+      # didaftarkan di Google Cloud Console harus
+      # AUTH_URL + /api/auth/callback/google
+      AUTH_URL: http://localhost
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      PORT: 8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mediashare}
+      POSTGRES_USER: ${POSTGRES_USER:-mediashare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mediashare_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mediashare}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # PostgreSQL TIDAK di-expose ke internet (hanya internal Docker network).
+    ports:
+      - "127.0.0.1:5432:5432"
+
+volumes:
+  postgres_data:

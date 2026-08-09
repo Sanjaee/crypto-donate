@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+vendor/
+.next/
+out/
+dist/
+
+# Environment (secrets) - NEVER commit
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Go build artifacts
+backend/bin/
+*.exe
+*.test
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Uploads
+frontend/public/uploads/
+
+# Co-authored by: MediaShare
