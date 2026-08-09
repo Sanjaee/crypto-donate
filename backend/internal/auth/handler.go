@@ -16,7 +16,19 @@ import (
 )
 
 type Handler struct {
-	DB *gorm.DB
+	DB          *gorm.DB
+	AdminEmails []string
+}
+
+// roleForEmail menentukan role berdasarkan daftar admin (env ADMIN_EMAILS).
+func (h *Handler) roleForEmail(email string) string {
+	email = strings.ToLower(strings.TrimSpace(email))
+	for _, a := range h.AdminEmails {
+		if strings.ToLower(strings.TrimSpace(a)) == email {
+			return models.RoleAdmin
+		}
+	}
+	return models.RoleUser
 }
 
 type registerRequest struct {
@@ -69,7 +81,7 @@ func (h *Handler) Register(c *gin.Context) {
 		Name:         req.Name,
 		PasswordHash: string(hash),
 		Provider:     models.ProviderCredentials,
-		Role:         models.RoleUser,
+		Role:         h.roleForEmail(req.Email),
 	}
 	if err := createUserWithDefaults(h.DB, user); err != nil {
 		util.Error(c, http.StatusConflict, "email or username already in use")
@@ -142,7 +154,7 @@ func (h *Handler) OAuthLogin(c *gin.Context) {
 		Provider:  models.ProviderGoogle,
 		GoogleID:  req.GoogleID,
 		AvatarURL: req.Avatar,
-		Role:      models.RoleUser,
+		Role:      h.roleForEmail(req.Email),
 	}
 	if err := createUserWithDefaults(h.DB, &user); err != nil {
 		util.InternalError(c, "failed to create account")

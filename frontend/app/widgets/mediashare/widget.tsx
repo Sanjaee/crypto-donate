@@ -28,7 +28,7 @@ export default function WidgetClient({
     return () => clearTimeout(t);
   }, [demo]);
 
-  // Bunyi saat ada media masuk (pembayaran terkonfirmasi).
+  // Play a sound when media arrives (payment confirmed).
   useEffect(() => {
     if (media?.id && audioRef.current) {
       audioRef.current.currentTime = 0;

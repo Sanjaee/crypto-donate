@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -53,6 +54,7 @@ func main() {
 		os.Exit(1)
 	}
 	ensureDefaultStreamSettings(db)
+	promoteAdmins(db, cfg.AdminEmails)
 
 	plisioClient := plisio.New(cfg.PlisioAPIKey, cfg.PlisioBaseURL)
 
@@ -107,7 +109,7 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 
 	hub := realtime.NewHub()
 
-	authH := &auth.Handler{DB: db}
+	authH := &auth.Handler{DB: db, AdminEmails: cfg.AdminEmails}
 	usersH := &users.Handler{DB: db}
 	donationsH := &donations.Handler{DB: db, Plisio: plisioClient, Config: cfg, PlatformFeePct: cfg.PlatformFeePct}
 	paymentsH := &payments.Handler{DB: db, Plisio: plisioClient, Hub: hub}
@@ -153,6 +155,10 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 	authed.GET("/users/me", authH.Me)
 	authed.PATCH("/users/me", usersH.UpdateMe)
 	authed.GET("/dashboard/stats", adminH.DashboardStats)
+
+	// ---- Admin (khusus role ADMIN) ----
+	authed.GET("/admin/users", adminH.ListUsers)
+	authed.GET("/admin/stats", adminH.GlobalStats)
 
 	authed.GET("/wallet", walletsH.Summary)
 	authed.GET("/wallet/transactions", walletsH.Transactions)
@@ -212,4 +218,18 @@ func randomHex(n int) string {
 		panic(err)
 	}
 	return hex.EncodeToString(b)
+}
+
+// promoteAdmins menetapkan role ADMIN untuk email pada env ADMIN_EMAILS.
+func promoteAdmins(db *gorm.DB, adminEmails []string) {
+	if len(adminEmails) == 0 {
+		return
+	}
+	for _, email := range adminEmails {
+		email = strings.ToLower(strings.TrimSpace(email))
+		if email == "" {
+			continue
+		}
+		db.Model(&models.User{}).Where("LOWER(email) = ?", email).Update("role", models.RoleAdmin)
+	}
 }

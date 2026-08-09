@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { LoginButton } from "@/components/login-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,7 +23,7 @@ const STEPS = [
     icon: UserPlus,
     step: "1",
     title: "Create your account",
-    desc: "Sign up with Google or your email at /register. Your own donation page and widget are created automatically.",
+    desc: "Sign in with Google. Your own donation page and widget are created automatically.",
   },
   {
     icon: Tv,
@@ -95,12 +96,7 @@ export default async function GuidePage() {
               Ready to receive your first donation?
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button asChild size="lg">
-                <Link href="/register">Create your account</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/login">Log in</Link>
-              </Button>
+              <LoginButton size="lg">Create your account</LoginButton>
             </div>
           </CardContent>
         </Card>

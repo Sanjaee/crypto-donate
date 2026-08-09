@@ -15,6 +15,7 @@ type Config struct {
 	PlisioProduction  bool
 	PublicBaseURL     string
 	PlisioWebhookBase string
+	AdminEmails       []string
 
 	InternalAPIToken string
 	PlatformFeePct   int64
@@ -42,6 +43,7 @@ func Load() *Config {
 		PlisioProduction:    prod,
 		PublicBaseURL:       getEnv("NEXT_PUBLIC_APP_URL", "http://localhost"),
 		PlisioWebhookBase:   getEnv("PLISIO_WEBHOOK_BASE_URL", ""),
+		AdminEmails:         splitCSV(getEnv("ADMIN_EMAILS", "")),
 		InternalAPIToken:    getEnv("INTERNAL_API_TOKEN", ""),
 		PlatformFeePct:      getEnvInt64("PLATFORM_FEE_PERCENT", 5),
 		CORSOrigins:         splitCSV(getEnv("CORS_ORIGINS", "http://localhost:3000")),

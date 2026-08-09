@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { LoginButton } from "@/components/login-dialog";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -21,14 +22,7 @@ export async function SiteHeader() {
               </Button>
             </>
           ) : (
-            <>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/login">Log in</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href="/register">Sign up</Link>
-              </Button>
-            </>
+            <LoginButton size="sm">Log in</LoginButton>
           )}
         </nav>
       </div>

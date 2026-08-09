@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
+import { LoginButton } from "@/components/login-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -63,12 +64,10 @@ export default async function LandingPage() {
                   </>
                 ) : (
                   <>
-                    <Button asChild size="lg">
-                      <Link href="/register">
-                        Get Started — it&apos;s free
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
+                    <LoginButton size="lg">
+                      Get Started — it&apos;s free
+                      <ArrowRight className="h-4 w-4" />
+                    </LoginButton>
                     <Button asChild size="lg" variant="outline">
                       <Link href="/guide">User Guide</Link>
                     </Button>

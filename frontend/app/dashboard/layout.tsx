@@ -12,6 +12,7 @@ import {
   Home,
   ExternalLink,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
 
 const NAV = [
@@ -23,6 +24,10 @@ const NAV = [
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ];
 
+const ADMIN_NAV = [
+  { href: "/dashboard/admin", label: "Admin", icon: ShieldCheck },
+];
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -30,12 +35,14 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   if (!session?.user) {
-    redirect("/login");
+    redirect("/");
   }
   const username = session.user.username;
   const donateUrl = `/donate/${username}`;
   const avatar = session.user.image ?? "";
   const initial = (session.user.name ?? "?")[0]?.toUpperCase() ?? "?";
+  const isAdmin = session.user.role === "ADMIN";
+  const navItems = isAdmin ? [...NAV, ...ADMIN_NAV] : NAV;
 
   return (
     <div className="flex min-h-screen">
@@ -46,7 +53,7 @@ export default async function DashboardLayout({
             Media<span className="text-primary">Share</span>
           </Link>
           <nav className="flex flex-1 flex-col gap-1">
-            {NAV.map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -143,7 +150,7 @@ export default async function DashboardLayout({
         <header className="sticky top-[57px] z-20 border-b bg-background/80 backdrop-blur md:hidden">
           <div className="flex items-center justify-between px-4 py-2">
             <nav className="flex gap-1">
-              {NAV.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

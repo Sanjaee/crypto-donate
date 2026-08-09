@@ -38,8 +38,8 @@ type CryptoMethod = {
   priceUsd?: string;
 };
 
-// Fallback mapping jika endpoint /payments/currencies belum aktif
-// (Plisio butuh whitelist IP). Invoice tetap dibuat sungguhan oleh Plisio.
+// Fallback mapping if the /payments/currencies endpoint is not active yet
+// (Plisio needs an IP whitelist). The invoice is still really created by Plisio.
 const DEFAULT_METHODS: CryptoMethod[] = [
   { cid: "BTC", currency: "BTC", name: "Bitcoin" },
   { cid: "SOL", currency: "SOL", name: "Solana" },
@@ -52,7 +52,7 @@ const DEFAULT_METHODS: CryptoMethod[] = [
   { cid: "XRP", currency: "XRP", name: "XRP" },
 ];
 
-// 3 pilihan utama + "Other coins" dari mapping currency.
+// 3 main choices + "Other coins" from the currency mapping.
 const MAIN_COINS = ["BTC", "SOL", "ETH"];
 
 export default function DonatePage() {
@@ -158,7 +158,7 @@ export default function DonatePage() {
       </header>
 
       <main className="container mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-10">
-        {/* Info kreator, rata kiri */}
+        {/* Creator info, left-aligned */}
         <div className="mb-8 w-full max-w-2xl">
           <h1 className="text-3xl font-extrabold">{profile.name}</h1>
           <p className="mt-2 text-muted-foreground">
@@ -267,7 +267,7 @@ export default function DonatePage() {
                 )}
               </div>
 
-              {/* Pilih crypto */}
+              {/* Choose crypto */}
               <div>
                 <Label>Pay with</Label>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
