@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { SiteFooter } from "@/components/site-footer";
 
 const QUICK_AMOUNTS = [10000, 25000, 50000, 100000];
 const MEDIA_OPTIONS = [
@@ -43,6 +44,8 @@ export default function DonatePage() {
   const [amount, setAmount] = useState(25000);
   const [mediaType, setMediaType] = useState("");
   const [paying, setPaying] = useState(false);
+  const [message, setMessage] = useState("");
+  const MAX_MESSAGE = 500;
 
   useEffect(() => {
     publicApi<PublicProfile>(`/users/${username}`)
@@ -148,7 +151,7 @@ export default function DonatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/40">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-muted/40">
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="container mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
           <Link href="/" className="font-bold">
@@ -158,7 +161,7 @@ export default function DonatePage() {
         </div>
       </header>
 
-      <main className="container mx-auto max-w-3xl px-4 py-10">
+      <main className="container mx-auto max-w-3xl flex-1 px-4 py-10">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-extrabold">{profile.name}</h1>
           <p className="mt-2 text-muted-foreground">
@@ -206,13 +209,26 @@ export default function DonatePage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="message">Message</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="message">Message</Label>
+                  <span
+                    className={`text-xs ${
+                      message.length >= MAX_MESSAGE
+                        ? "font-semibold text-destructive"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {message.length}/{MAX_MESSAGE}
+                  </span>
+                </div>
                 <Textarea
                   id="message"
                   name="message"
                   rows={3}
-                  maxLength={500}
+                  maxLength={MAX_MESSAGE}
                   placeholder="Keep streaming!"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
                 />
               </div>
 
@@ -252,6 +268,7 @@ export default function DonatePage() {
           </CardContent>
         </Card>
       </main>
+      <SiteFooter />
     </div>
   );
 }
