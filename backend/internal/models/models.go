@@ -84,6 +84,8 @@ type Donation struct {
 	UserID        uuid.UUID  `gorm:"type:uuid;index:idx_donation_user_created,priority:1;not null" json:"userId"`
 	DonorName     string     `gorm:"size:100;not null" json:"donorName"`
 	Amount        int64      `gorm:"not null" json:"amount"`
+	CryptoAmount  string     `gorm:"size:50" json:"cryptoAmount"` // nominal crypto yg dibayar sukses
+	Currency      string     `gorm:"size:20" json:"currency"`     // BTC / SOL / ...
 	Message       string     `gorm:"type:text" json:"message"`
 	MediaType     string     `gorm:"size:20" json:"mediaType"`
 	MediaURL      string     `gorm:"size:1000" json:"mediaUrl"`

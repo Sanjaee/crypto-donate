@@ -13,6 +13,8 @@ export type Donation = {
   userId: string;
   donorName: string;
   amount: number;
+  cryptoAmount?: string;
+  currency?: string;
   message?: string;
   mediaType?: string;
   mediaUrl?: string;

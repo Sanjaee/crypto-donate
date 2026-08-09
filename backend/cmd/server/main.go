@@ -25,6 +25,7 @@ import (
 	"mediashare/backend/internal/models"
 	"mediashare/backend/internal/payments"
 	"mediashare/backend/internal/plisio"
+	"mediashare/backend/internal/realtime"
 	"mediashare/backend/internal/streamsettings"
 	"mediashare/backend/internal/users"
 	"mediashare/backend/internal/wallets"
@@ -104,13 +105,15 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 
 	api := r.Group("/api")
 
+	hub := realtime.NewHub()
+
 	authH := &auth.Handler{DB: db}
 	usersH := &users.Handler{DB: db}
 	donationsH := &donations.Handler{DB: db, Plisio: plisioClient, Config: cfg, PlatformFeePct: cfg.PlatformFeePct}
-	paymentsH := &payments.Handler{DB: db, Plisio: plisioClient}
+	paymentsH := &payments.Handler{DB: db, Plisio: plisioClient, Hub: hub}
 	walletsH := &wallets.Handler{DB: db}
-	mediaH := &media.Handler{DB: db}
-	widgetsH := &widgets.Handler{DB: db}
+	mediaH := &media.Handler{DB: db, Hub: hub}
+	widgetsH := &widgets.Handler{DB: db, Hub: hub}
 	settingsH := &streamsettings.Handler{DB: db}
 	adminH := &admin.Handler{DB: db}
 
@@ -134,12 +137,16 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 	widgetGroup := api.Group("/widgets/mediashare")
 	widgetGroup.GET("/config", middleware.RateLimit(120, time.Minute), widgetsH.Config)
 	widgetGroup.GET("/media", middleware.RateLimit(120, time.Minute), widgetsH.NextMedia)
+	widgetGroup.GET("/stream", middleware.RateLimit(120, time.Minute), widgetsH.Stream)
 	widgetGroup.POST("/:id/complete", middleware.RateLimit(120, time.Minute), widgetsH.Complete)
 
 	// ---- Internal (hanya dari Next.js server via INTERNAL_API_TOKEN) ----
 	internal := api.Group("", middleware.InternalAuth(cfg.InternalAPIToken))
 	internal.POST("/auth/verify-credentials", middleware.RateLimit(30, time.Minute), authH.VerifyCredentials)
 	internal.POST("/auth/oauth", middleware.RateLimit(30, time.Minute), authH.OAuthLogin)
+
+	// Backfill crypto lama (protected oleh INTERNAL_API_TOKEN).
+	internal.POST("/dev/backfill-crypto", paymentsH.DevBackfill)
 
 	authed := internal.Group("", middleware.UserID())
 	authed.GET("/auth/me", authH.Me)
@@ -154,6 +161,7 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 	authed.GET("/donations/:id", donationsH.Get)
 
 	authed.GET("/media", mediaH.List)
+	authed.POST("/media/test", mediaH.Test)
 	authed.POST("/media/:id/approve", mediaH.Approve)
 	authed.POST("/media/:id/reject", mediaH.Reject)
 

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,12 +17,14 @@ import (
 
 	"mediashare/backend/internal/models"
 	"mediashare/backend/internal/plisio"
+	"mediashare/backend/internal/realtime"
 	"mediashare/backend/internal/util"
 )
 
 type Handler struct {
 	DB     *gorm.DB
 	Plisio *plisio.Client
+	Hub    *realtime.Hub
 }
 
 // settlementInfo membawa data yang dibutuhkan untuk settle.
@@ -29,6 +32,7 @@ type settlementInfo struct {
 	OrderID       string
 	TransactionID string // Plisio txn_id
 	PaymentType   string // crypto currency (BTC, ETH, ...)
+	CryptoAmount  string // nominal crypto yg dibayar
 	Raw           any
 }
 
@@ -103,6 +107,7 @@ func (h *Handler) Status(c *gin.Context) {
 					OrderID:       orderID,
 					TransactionID: *payment.TransactionID,
 					PaymentType:   op.Currency,
+					CryptoAmount:  op.Amount,
 					Raw: map[string]any{
 						"status":       op.Status,
 						"order_number": orderID,
@@ -153,6 +158,35 @@ func (h *Handler) Status(c *gin.Context) {
 	})
 }
 
+// DevBackfill — memperbaiki data lama: mengisi crypto_amount + currency pada
+// donation PAID dari operation Plisio. Jalan di dalam container (IP ter-whitelist).
+func (h *Handler) DevBackfill(c *gin.Context) {
+	var payments []models.PaymentTransaction
+	if err := h.DB.Where("status = ?", models.PaymentStatusPaid).Find(&payments).Error; err != nil {
+		util.InternalError(c, "failed to load payments")
+		return
+	}
+	updated := 0
+	for _, p := range payments {
+		if p.TransactionID == nil || *p.TransactionID == "" || strings.HasPrefix(*p.TransactionID, "MOCK-") {
+			continue
+		}
+		op, err := h.Plisio.GetOperation(*p.TransactionID)
+		if err != nil || op == nil {
+			slog.Warn("backfill.skip", "txn", *p.TransactionID, "error", err)
+			continue
+		}
+		h.DB.Table("ms_payment_transactions").Where("id = ?", p.ID).Update("raw_response", mustJSON(op))
+		if op.Currency != "" && op.Amount != "" {
+			h.DB.Model(&models.Donation{}).Where("id = ?", p.DonationID).
+				Updates(map[string]any{"crypto_amount": op.Amount, "currency": op.Currency})
+			updated++
+		}
+		slog.Info("backfill.ok", "order", p.OrderID, "amount", op.Amount, "currency", op.Currency)
+	}
+	util.OK(c, gin.H{"updated": updated})
+}
+
 // WebhookPlisio memproses callback pembayaran crypto dari Plisio.
 // Wajib: verify HMAC, lookup order, idempotency, seluruh update finansial
 // dalam satu database transaction.
@@ -201,6 +235,7 @@ func (h *Handler) WebhookPlisio(c *gin.Context) {
 		OrderID:       orderNumber,
 		TransactionID: txnID,
 		PaymentType:   currency,
+		CryptoAmount:  toString(m["amount"]),
 		Raw:           m,
 	}
 
@@ -259,11 +294,18 @@ func (h *Handler) settle(p models.PaymentTransaction, info settlementInfo) error
 			return err
 		}
 		if donation.Status != models.DonationStatusPaid {
-			if err := tx.Model(&donation).Updates(map[string]any{
+			donationUpdates := map[string]any{
 				"status":         models.DonationStatusPaid,
 				"payment_status": models.PaymentStatusPaid,
 				"paid_at":        &now,
-			}).Error; err != nil {
+			}
+			if info.CryptoAmount != "" {
+				donationUpdates["crypto_amount"] = info.CryptoAmount
+			}
+			if info.PaymentType != "" {
+				donationUpdates["currency"] = info.PaymentType
+			}
+			if err := tx.Model(&donation).Updates(donationUpdates).Error; err != nil {
 				return err
 			}
 		}
@@ -272,23 +314,28 @@ func (h *Handler) settle(p models.PaymentTransaction, info settlementInfo) error
 			return err
 		}
 
-		if donation.MediaType != "" && donation.MediaURL != "" {
-			media := &models.MediaItem{
-				DonationID: donation.ID,
-				UserID:     donation.UserID,
-				MediaType:  donation.MediaType,
-				MediaURL:   donation.MediaURL,
-				Status:     models.MediaStatusQueued,
-				Duration:   10,
-			}
-			var setting models.StreamSetting
-			if err := tx.Where("user_id = ?", donation.UserID).First(&setting).Error; err == nil && setting.DefaultDuration > 0 {
-				media.Duration = setting.DefaultDuration
-			}
-			if err := tx.Create(media).Error; err != nil {
-				return err
-			}
-			slog.Info("media.queued", "media_id", media.ID, "donation_id", donation.ID)
+		// Selalu buat MediaItem (termasuk donation tanpa media = hanya teks),
+		// agar kartu donor tetap tampil di widget.
+		media := &models.MediaItem{
+			DonationID: donation.ID,
+			UserID:     donation.UserID,
+			MediaType:  donation.MediaType,
+			MediaURL:   donation.MediaURL,
+			Status:     models.MediaStatusQueued,
+			Duration:   10,
+		}
+		var setting models.StreamSetting
+		if err := tx.Where("user_id = ?", donation.UserID).First(&setting).Error; err == nil && setting.DefaultDuration > 0 {
+			media.Duration = setting.DefaultDuration
+		}
+		if err := tx.Create(media).Error; err != nil {
+			return err
+		}
+		slog.Info("media.queued", "media_id", media.ID, "donation_id", donation.ID)
+
+		// Notifikasi realtime ke widget yang terhubung.
+		if h.Hub != nil {
+			h.Hub.Notify(donation.UserID, []byte(`{"type":"media"}`))
 		}
 
 		slog.Info("payment.settled", "order_number", info.OrderID, "net", donation.NetAmount)

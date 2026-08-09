@@ -58,7 +58,9 @@ export default async function DonationsPage() {
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-2 text-sm">
                 <p className="text-2xl font-extrabold">
-                  {formatUSD(d.amount)}
+                  {d.cryptoAmount
+                    ? `${d.cryptoAmount} ${d.currency ?? ""}`.trim()
+                    : formatUSD(d.amount)}
                 </p>
                 {d.message && (
                   <p className="text-muted-foreground">&ldquo;{d.message}&rdquo;</p>

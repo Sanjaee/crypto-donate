@@ -1,6 +1,7 @@
 package widgets
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,11 +11,13 @@ import (
 	"gorm.io/gorm/clause"
 
 	"mediashare/backend/internal/models"
+	"mediashare/backend/internal/realtime"
 	"mediashare/backend/internal/util"
 )
 
 type Handler struct {
-	DB *gorm.DB
+	DB  *gorm.DB
+	Hub *realtime.Hub
 }
 
 type mediaResponse struct {
@@ -46,6 +49,47 @@ func (h *Handler) Config(c *gin.Context) {
 		ShowAmount:    setting.ShowAmount,
 		MinimumDonation: setting.MinimumDonation,
 	})
+}
+
+// Stream GET /widgets/mediashare/stream?streamKey=xxx
+// SSE realtime: kirim ping "media" saat ada media baru untuk user.
+// Widget lalu memanggil GET /media sekali (claim via SKIP LOCKED).
+func (h *Handler) Stream(c *gin.Context) {
+	key := c.Query("streamKey")
+	if key == "" {
+		util.BadRequest(c, "streamKey is required")
+		return
+	}
+	var setting models.StreamSetting
+	if err := h.DB.Where("stream_key = ?", key).First(&setting).Error; err != nil {
+		util.Error(c, http.StatusNotFound, "invalid stream key")
+		return
+	}
+
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no")
+
+	ch, unsub := h.Hub.Subscribe(setting.UserID)
+	defer unsub()
+
+	// Ping awal agar widget segera claim media yang mungkin sudah ada.
+	writeSSE(c, []byte(`{"type":"media"}`))
+
+	for {
+		select {
+		case ev := <-ch:
+			writeSSE(c, ev)
+		case <-c.Request.Context().Done():
+			return
+		}
+	}
+}
+
+func writeSSE(c *gin.Context, data []byte) {
+	fmt.Fprintf(c.Writer, "event: media\ndata: %s\n\n", data)
+	c.Writer.Flush()
 }
 
 // NextMedia GET /widgets/mediashare/media?streamKey=xxx
@@ -86,13 +130,21 @@ func (h *Handler) NextMedia(c *gin.Context) {
 	}
 
 	var donation models.Donation
-	h.DB.Select("donor_name, amount, message").Where("id = ?", media.DonationID).First(&donation)
+	donorName := donation.DonorName
+	amount := donation.Amount
+	message := donation.Message
+	if err := h.DB.Select("donor_name, amount, message").Where("id = ?", media.DonationID).First(&donation).Error; err != nil || donorName == "" {
+		// Media demo/test (tanpa donation): tampilkan contoh donor.
+		donorName = "Mumu"
+		amount = 1000 // $10.00
+		message = "Demo — test the widget"
+	}
 
 	util.OK(c, mediaResponse{
 		ID:        media.ID.String(),
-		DonorName: donation.DonorName,
-		Amount:    donation.Amount,
-		Message:   donation.Message,
+		DonorName: donorName,
+		Amount:    amount,
+		Message:   message,
 		MediaType: media.MediaType,
 		MediaURL:  media.MediaURL,
 		Duration:  media.Duration,

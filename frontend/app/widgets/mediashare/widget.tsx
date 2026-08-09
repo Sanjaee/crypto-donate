@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { formatUSD } from "@/lib/format";
 import type { WidgetConfig, WidgetMedia } from "@/types";
 
-const POLL_INTERVAL_MS = 2000;
-
 function isYouTube(type: string) {
   return type === "youtube";
 }
@@ -19,8 +17,16 @@ export default function WidgetClient({
 }) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [media, setMedia] = useState<WidgetMedia | null>(null);
+  const [demoVisible, setDemoVisible] = useState(demo);
   const playingRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Demo hanya tampil 10 detik.
+  useEffect(() => {
+    if (!demo) return;
+    const t = setTimeout(() => setDemoVisible(false), 10000);
+    return () => clearTimeout(t);
+  }, [demo]);
 
   // Bunyi saat ada media masuk (pembayaran terkonfirmasi).
   useEffect(() => {
@@ -41,37 +47,51 @@ export default function WidgetClient({
       .catch(() => {});
   }, [streamKey]);
 
-  // Poll the queue.
+  // Realtime via SSE + fallback polling lambat (15s) sebagai jaring pengaman.
   useEffect(() => {
     if (demo || !streamKey) return;
     let stopped = false;
+    let es: EventSource | null = null;
     let timer: ReturnType<typeof setInterval> | undefined;
+    let initial: ReturnType<typeof setTimeout> | undefined;
 
-    async function poll() {
-      if (playingRef.current) return;
+    async function claim() {
+      if (playingRef.current || stopped) return;
       try {
         const res = await fetch(
           `/api/widgets/mediashare/media?streamKey=${encodeURIComponent(streamKey)}`,
           { cache: "no-store" },
         );
-        if (!res.ok) throw new Error("widget failed");
+        if (!res.ok) return;
         const json = await res.json();
-        // Make sure there is really media (has an id), not a wrong/empty
-        // shape ({"data":null} or {"data":{"data":null}}).
         if (!stopped && json?.data?.id) {
           setMedia(json.data);
           playingRef.current = true;
         }
       } catch {
-        // abaikan — widget tetap mencoba pada polling berikutnya.
+        // abaikan
       }
     }
 
-    poll();
-    timer = setInterval(poll, POLL_INTERVAL_MS);
+    // SSE: event "media" -> claim sekali (SKIP LOCKED, cegah double-play).
+    try {
+      es = new EventSource(
+        `/api/widgets/mediashare/stream?streamKey=${encodeURIComponent(streamKey)}`,
+      );
+      es.addEventListener("media", claim);
+    } catch {
+      // SSE gagal — andalkan fallback polling.
+    }
+
+    // Fallback polling lambat.
+    initial = setTimeout(claim, 2000);
+    timer = setInterval(claim, 15000);
+
     return () => {
       stopped = true;
+      if (es) es.close();
       if (timer) clearInterval(timer);
+      if (initial) clearTimeout(initial);
     };
   }, [streamKey]);
 
@@ -105,25 +125,25 @@ export default function WidgetClient({
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-transparent">
       <audio ref={audioRef} src="/bgm.mp3" preload="auto" />
-      {demo ? (
-        // Mode demo: contoh media dari tm.mp4
-        <div className="absolute inset-0 flex animate-fade-in-up items-center justify-center">
-          <div className="w-full max-w-3xl px-4">
-            <video
-              src="/tm.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="aspect-video w-full rounded-xl object-cover shadow-2xl"
-            />
-            <div className="mt-6 rounded-2xl border bg-black/70 p-6 text-white shadow-2xl backdrop-blur">
-              <p className="text-xl font-bold">Sample Media</p>
-              <p className="mt-1 text-2xl font-extrabold text-emerald-400">
-                Demo video
+      {demoVisible ? (
+        // Mode demo: video tm.mp4 full-screen + contoh donor (10 detik)
+        <div className="absolute inset-0">
+          <video
+            src="/tm.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-x-0 bottom-0 flex justify-center px-4 pb-6">
+            <div className="w-full max-w-3xl rounded-lg bg-primary px-8 py-4 text-center shadow-2xl">
+              <p className="text-xl font-bold text-primary-foreground">
+                Mumu just gave{" "}
+                <span className="font-extrabold">$10.00</span>
               </p>
-              <p className="mt-2 text-lg">
-                Widget media share — contoh tampilan media.
+              <p className="mt-0.5 text-base text-primary-foreground/90">
+                Keep up the great work! 🔥
               </p>
             </div>
           </div>
@@ -131,7 +151,7 @@ export default function WidgetClient({
       ) : media ? (
         <div className="absolute inset-0 flex animate-fade-in-up items-center justify-center">
           <div className="w-full max-w-3xl px-4">
-            {isYouTube(media.mediaType) ? (
+            {isYouTube(media.mediaType) && media.mediaUrl ? (
               <div className="aspect-video w-full overflow-hidden rounded-xl shadow-2xl">
                 <iframe
                   src={`https://www.youtube.com/embed/${media.mediaUrl}?autoplay=1&controls=0&rel=0`}
@@ -141,27 +161,31 @@ export default function WidgetClient({
                   title="Media donation"
                 />
               </div>
-            ) : (
+            ) : media.mediaUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={media.mediaUrl}
                 alt="Media donation"
                 className="mx-auto max-h-[60vh] rounded-xl object-contain shadow-2xl"
               />
-            )}
+            ) : null}
 
             {(config?.showDonorName ?? true) && media.donorName && (
-              <div className="mt-6 rounded-2xl border bg-black/70 p-6 text-white shadow-2xl backdrop-blur">
-                {config?.showDonorName && (
-                  <p className="text-xl font-bold">{media.donorName}</p>
-                )}
-                {config?.showAmount && (
-                  <p className="mt-1 text-2xl font-extrabold text-emerald-400">
-                    {formatUSD(media.amount)}
-                  </p>
-                )}
+              <div className="mt-6 w-full rounded-lg bg-primary px-8 py-4 text-center shadow-2xl">
+                <p className="text-xl font-bold text-primary-foreground">
+                  {config?.showDonorName && media.donorName
+                    ? `${media.donorName} just gave `
+                    : ""}
+                  {config?.showAmount && (
+                    <span className="font-extrabold">
+                      {formatUSD(media.amount)}
+                    </span>
+                  )}
+                </p>
                 {config?.showMessage && media.message && (
-                  <p className="mt-2 text-lg">{media.message}</p>
+                  <p className="mt-0.5 text-base text-primary-foreground/90">
+                    {media.message}
+                  </p>
                 )}
               </div>
             )}

@@ -1,16 +1,20 @@
 package media
 
 import (
+	"log/slog"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"mediashare/backend/internal/models"
+	"mediashare/backend/internal/realtime"
 	"mediashare/backend/internal/util"
 )
 
 type Handler struct {
-	DB *gorm.DB
+	DB  *gorm.DB
+	Hub *realtime.Hub
 }
 
 // List GET /media (media milik user yang login).
@@ -25,6 +29,36 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 	util.OK(c, list)
+}
+
+// Test POST /media/test — membuat media demo (tanpa bayar) untuk user,
+// supaya bisa mengetes realtime widget.
+func (h *Handler) Test(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	id := userID.(uuid.UUID)
+
+	var setting models.StreamSetting
+	duration := 10
+	if err := h.DB.Where("user_id = ?", id).First(&setting).Error; err == nil && setting.DefaultDuration > 0 {
+		duration = setting.DefaultDuration
+	}
+
+	media := &models.MediaItem{
+		UserID:    id,
+		MediaType: models.MediaTypeGIF,
+		MediaURL:  "https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif",
+		Status:    models.MediaStatusQueued,
+		Duration:  duration,
+	}
+	if err := h.DB.Create(media).Error; err != nil {
+		util.InternalError(c, "failed to create test media")
+		return
+	}
+	if h.Hub != nil {
+		h.Hub.Notify(id, []byte(`{"type":"media"}`))
+	}
+	slog.Info("media.test_queued", "media_id", media.ID, "user_id", id)
+	util.OK(c, media)
 }
 
 // Approve POST /media/:id/approve (QUEUED -> QUEUED, hanya milik owner).

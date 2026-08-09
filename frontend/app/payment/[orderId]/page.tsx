@@ -112,7 +112,7 @@ export default function PaymentPage() {
         </div>
       </header>
 
-      <main className="container mx-auto flex w-full max-w-2xl flex-1 items-start justify-center px-4 py-10">
+      <main className="container mx-auto flex w-full max-w-2xl flex-1 items-center justify-center px-4 py-10">
         {error ? (
           <Card className="w-full max-w-md">
             <CardContent className="flex flex-col items-center gap-4 py-12 text-center">

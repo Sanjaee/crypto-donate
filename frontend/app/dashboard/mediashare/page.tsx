@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Copy, RefreshCw, MonitorPlay, ClipboardCheck } from "lucide-react";
+import { Copy, RefreshCw, MonitorPlay, ClipboardCheck, Send } from "lucide-react";
 
 export default function MediaSharePage() {
   const [setting, setSetting] = useState<StreamSetting | null>(null);
@@ -67,6 +67,15 @@ export default function MediaSharePage() {
       toast.success("Stream key regenerated");
     } catch {
       toast.error("Failed to regenerate stream key");
+    }
+  }
+
+  async function sendTest() {
+    try {
+      await clientApi("/media/test", { method: "POST" });
+      toast.success("Demo media sent! Check the widget in ~2 seconds.");
+    } catch {
+      toast.error("Failed to send demo media");
     }
   }
 
@@ -140,6 +149,14 @@ export default function MediaSharePage() {
               onClick={() => setTestOpen(true)}
             >
               <MonitorPlay className="h-4 w-4" /> Test Widget
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={sendTest}
+            >
+              <Send className="h-4 w-4" /> Test Donation
             </Button>
             <Button onClick={regenerateKey} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4" /> Regenerate Key
