@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { serverApi } from "@/lib/api";
-import { formatIDR, formatDateTime } from "@/lib/format";
+import { formatUSD, formatDateTime } from "@/lib/format";
 import type { Donation } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,7 +58,7 @@ export default async function DonationsPage() {
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-2 text-sm">
                 <p className="text-2xl font-extrabold">
-                  {formatIDR(d.amount)}
+                  {formatUSD(d.amount)}
                 </p>
                 {d.message && (
                   <p className="text-muted-foreground">&ldquo;{d.message}&rdquo;</p>
@@ -66,7 +66,7 @@ export default async function DonationsPage() {
                 <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
                   {d.mediaType && <Badge variant="outline">{d.mediaType}</Badge>}
                   <span className="text-xs text-muted-foreground">
-                    Net {formatIDR(d.netAmount)}
+                    Net {formatUSD(d.netAmount)}
                   </span>
                   <span className="ml-auto text-xs text-muted-foreground">
                     {formatDateTime(d.createdAt)}

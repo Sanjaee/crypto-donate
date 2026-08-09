@@ -26,7 +26,7 @@ func (h *Handler) Get(c *gin.Context) {
 		setting = models.StreamSetting{
 			UserID:          id,
 			StreamKey:       randomHex(32),
-			MinimumDonation: 10000,
+			MinimumDonation: 100,
 			DefaultDuration: 10,
 			YouTubeEnabled:  true,
 			TikTokEnabled:   true,

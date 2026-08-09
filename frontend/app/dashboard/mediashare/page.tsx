@@ -3,10 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { clientApi } from "@/lib/api";
-import { formatIDR } from "@/lib/format";
+import { formatUSD } from "@/lib/format";
 import type { StreamSetting } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -18,9 +24,14 @@ export default function MediaSharePage() {
   const [setting, setSetting] = useState<StreamSetting | null>(null);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testOpen, setTestOpen] = useState(false);
 
   const widgetUrl = setting?.streamKey
     ? `${window.location.origin}/widgets/mediashare?streamKey=${setting.streamKey}`
+    : "";
+
+  const demoUrl = setting?.streamKey
+    ? `${window.location.origin}/widgets/mediashare?streamKey=${setting.streamKey}&demo=1`
     : "";
 
   const load = useCallback(async () => {
@@ -110,7 +121,7 @@ export default function MediaSharePage() {
           <code className="block break-all rounded-lg bg-muted p-3 text-xs">
             {widgetUrl}
           </code>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button onClick={copyUrl} variant="outline" size="sm">
               {copied ? (
                 <>
@@ -121,6 +132,14 @@ export default function MediaSharePage() {
                   <Copy className="h-4 w-4" /> Copy URL
                 </>
               )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setTestOpen(true)}
+            >
+              <MonitorPlay className="h-4 w-4" /> Test Widget
             </Button>
             <Button onClick={regenerateKey} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4" /> Regenerate Key
@@ -136,7 +155,7 @@ export default function MediaSharePage() {
         <CardContent className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Minimum Donation (IDR)</Label>
+              <Label>Minimum Donation (USD)</Label>
               <Input
                 type="number"
                 min={0}
@@ -146,7 +165,7 @@ export default function MediaSharePage() {
                 }
               />
               <p className="text-xs text-muted-foreground">
-                Currently {formatIDR(setting.minimumDonation)}
+                Currently {formatUSD(setting.minimumDonation)}
               </p>
             </div>
             <div className="space-y-1.5">
@@ -191,6 +210,28 @@ export default function MediaSharePage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Preview widget (demo tm.mp4) */}
+      <Dialog open={testOpen} onOpenChange={setTestOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Widget Preview</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video w-full overflow-hidden rounded-lg border bg-black">
+            {demoUrl ? (
+              <iframe
+                src={demoUrl}
+                className="h-full w-full"
+                title="Widget preview"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                No widget yet
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import (
 	"mediashare/backend/internal/middleware"
 	"mediashare/backend/internal/models"
 	"mediashare/backend/internal/payments"
+	"mediashare/backend/internal/plisio"
 	"mediashare/backend/internal/streamsettings"
 	"mediashare/backend/internal/users"
 	"mediashare/backend/internal/wallets"
@@ -52,14 +53,9 @@ func main() {
 	}
 	ensureDefaultStreamSettings(db)
 
-	midtrans := payments.NewMidtransClient(
-		cfg.MidtransServerKey,
-		cfg.MidtransClientKey,
-		cfg.MidtransIsProd,
-		cfg.MidtransMock,
-	)
+	plisioClient := plisio.New(cfg.PlisioAPIKey, cfg.PlisioBaseURL)
 
-	r := setupRouter(cfg, db, midtrans)
+	r := setupRouter(cfg, db, plisioClient)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -88,7 +84,7 @@ func main() {
 	slog.Info("server stopped")
 }
 
-func setupRouter(cfg *config.Config, db *gorm.DB, midtrans *payments.MidtransClient) *gin.Engine {
+func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -110,8 +106,8 @@ func setupRouter(cfg *config.Config, db *gorm.DB, midtrans *payments.MidtransCli
 
 	authH := &auth.Handler{DB: db}
 	usersH := &users.Handler{DB: db}
-	donationsH := &donations.Handler{DB: db, Midtrans: midtrans, PlatformFeePct: cfg.PlatformFeePct}
-	paymentsH := &payments.Handler{DB: db, Midtrans: midtrans}
+	donationsH := &donations.Handler{DB: db, Plisio: plisioClient, Config: cfg, PlatformFeePct: cfg.PlatformFeePct}
+	paymentsH := &payments.Handler{DB: db, Plisio: plisioClient}
 	walletsH := &wallets.Handler{DB: db}
 	mediaH := &media.Handler{DB: db}
 	widgetsH := &widgets.Handler{DB: db}
@@ -125,14 +121,14 @@ func setupRouter(cfg *config.Config, db *gorm.DB, midtrans *payments.MidtransCli
 	api.GET("/users/:username", usersH.PublicProfile)
 	api.POST("/donations", middleware.RateLimit(10, time.Minute), donationsH.Create)
 
-	// ---- Midtrans webhook (signature verified, rate limited) ----
-	api.POST("/webhooks/midtrans", middleware.RateLimit(120, time.Minute), paymentsH.WebhookMidtrans)
+	// ---- Plisio webhook (HMAC verified, rate limited) ----
+	api.POST("/webhooks/plisio", middleware.RateLimit(120, time.Minute), paymentsH.WebhookPlisio)
 
-	// ---- Dev-only: simulasi settlement saat MOCK_MIDTRANS=true ----
-	if cfg.MidtransMock {
-		api.POST("/dev/midtrans-settle/:orderId", middleware.RateLimit(60, time.Minute), paymentsH.DevSettle)
-		slog.Warn("MOCK_MIDTRANS aktif — /dev/midtrans-settle/:orderId tersedia")
-	}
+	// ---- Daftar metode pembayaran crypto ----
+	api.GET("/payments/currencies", middleware.RateLimit(60, time.Minute), paymentsH.Currencies)
+
+	// ---- Status pembayaran (publik, untuk halaman payment donor) ----
+	api.GET("/payments/:orderId/status", middleware.RateLimit(120, time.Minute), paymentsH.Status)
 
 	// ---- Widget polling (public, rate limited khusus) ----
 	widgetGroup := api.Group("/widgets/mediashare")
@@ -188,7 +184,7 @@ func ensureDefaultStreamSettings(db *gorm.DB) {
 			db.Create(&models.StreamSetting{
 				UserID:          u.ID,
 				StreamKey:       randomHex(32),
-				MinimumDonation: 10000,
+				MinimumDonation: 100,
 				DefaultDuration: 10,
 				YouTubeEnabled:  true,
 				TikTokEnabled:   true,

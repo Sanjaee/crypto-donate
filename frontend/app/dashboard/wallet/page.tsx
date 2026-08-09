@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { serverApi } from "@/lib/api";
-import { formatIDR, formatDateTime } from "@/lib/format";
+import { formatUSD, formatDateTime } from "@/lib/format";
 import type { WalletSummary, WalletTransaction } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ export default async function WalletPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-extrabold">
-              {summary ? formatIDR(summary.balance) : "-"}
+              {summary ? formatUSD(summary.balance) : "-"}
             </p>
           </CardContent>
         </Card>
@@ -52,7 +52,7 @@ export default async function WalletPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-extrabold">
-              {summary ? formatIDR(summary.totalReceived) : "-"}
+              {summary ? formatUSD(summary.totalReceived) : "-"}
             </p>
           </CardContent>
         </Card>
@@ -88,7 +88,7 @@ export default async function WalletPage() {
                         {t.type === "CREDIT" ? "+" : "-"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{formatIDR(t.amount)}</TableCell>
+                    <TableCell>{formatUSD(t.amount)}</TableCell>
                     <TableCell>{formatDateTime(t.createdAt)}</TableCell>
                   </TableRow>
                 ))}

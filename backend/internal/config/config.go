@@ -10,10 +10,11 @@ type Config struct {
 	Port        string
 	DatabaseURL string
 
-	MidtransServerKey string
-	MidtransClientKey string
-	MidtransIsProd    bool
-	MidtransMock      bool
+	PlisioAPIKey      string
+	PlisioBaseURL     string
+	PlisioProduction  bool
+	PublicBaseURL     string
+	PlisioWebhookBase string
 
 	InternalAPIToken string
 	PlatformFeePct   int64
@@ -25,14 +26,22 @@ type Config struct {
 }
 
 func Load() *Config {
+	prod := getEnvBool("PLISIO_PRODUCTION", false)
+	// Plisio memakai host yang sama untuk sandbox & production
+	// (dibedakan oleh tipe API key). Default selalu api.plisio.net.
+	base := getEnv("PLISIO_BASE_URL", "")
+	if base == "" {
+		base = "https://api.plisio.net/api/v1"
+	}
 	return &Config{
 		AppEnv:              getEnv("APP_ENV", "development"),
 		Port:                getEnv("PORT", "8080"),
 		DatabaseURL:         getEnv("DATABASE_URL", ""),
-		MidtransServerKey:   getEnv("MIDTRANS_SERVER_KEY", ""),
-		MidtransClientKey:   getEnv("MIDTRANS_CLIENT_KEY", ""),
-		MidtransIsProd:      getEnvBool("MIDTRANS_IS_PRODUCTION", false),
-		MidtransMock:        getEnvBool("MOCK_MIDTRANS", false),
+		PlisioAPIKey:        getEnv("PLISIO_API_KEY", ""),
+		PlisioBaseURL:       base,
+		PlisioProduction:    prod,
+		PublicBaseURL:       getEnv("NEXT_PUBLIC_APP_URL", "http://localhost"),
+		PlisioWebhookBase:   getEnv("PLISIO_WEBHOOK_BASE_URL", ""),
 		InternalAPIToken:    getEnv("INTERNAL_API_TOKEN", ""),
 		PlatformFeePct:      getEnvInt64("PLATFORM_FEE_PERCENT", 5),
 		CORSOrigins:         splitCSV(getEnv("CORS_ORIGINS", "http://localhost:3000")),

@@ -185,7 +185,7 @@ func createUserWithDefaults(db *gorm.DB, user *models.User) error {
 		if err := tx.Create(user).Error; err != nil {
 			return err
 		}
-		wallet := &models.Wallet{UserID: user.ID, Balance: 0, Currency: "IDR"}
+		wallet := &models.Wallet{UserID: user.ID, Balance: 0, Currency: "USD"}
 		if err := tx.Create(wallet).Error; err != nil {
 			return err
 		}

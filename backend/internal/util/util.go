@@ -28,20 +28,28 @@ func NextOrderID() string {
 	return fmt.Sprintf("DON-%s-%s", time.Now().Format("20060102-150405"), hex.EncodeToString(suffix))
 }
 
-// FormatIDR memformat nominal integer ke string Rupiah.
-func FormatIDR(n int64) string {
-	neg := n < 0
+// FormatUSD memformat nominal integer (sen) ke string USD.
+// Contoh: 500 -> "$5.00"
+func FormatUSD(cents int64) string {
+	neg := cents < 0
 	if neg {
-		n = -n
+		cents = -cents
 	}
-	s := fmt.Sprintf("%d", n)
-	var parts []string
-	for len(s) > 3 {
-		parts = append([]string{s[len(s)-3:]}, parts...)
-		s = s[:len(s)-3]
+	dollars := cents / 100
+	c := cents % 100
+	s := fmt.Sprintf("%d.%02d", dollars, c)
+
+	// Thousands separator.
+	parts := strings.SplitN(s, ".", 2)
+	intPart := parts[0]
+	var grouped []string
+	for len(intPart) > 3 {
+		grouped = append([]string{intPart[len(intPart)-3:]}, grouped...)
+		intPart = intPart[:len(intPart)-3]
 	}
-	parts = append([]string{s}, parts...)
-	out := "Rp" + strings.Join(parts, ".")
+	grouped = append([]string{intPart}, grouped...)
+
+	out := "$" + strings.Join(grouped, ",") + "." + parts[1]
 	if neg {
 		out = "-" + out
 	}

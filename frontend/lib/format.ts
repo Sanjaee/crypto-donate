@@ -1,9 +1,13 @@
-export function formatIDR(n: number | null | undefined): string {
+// Nominal disimpan sebagai integer cents (USD). Contoh: $5.00 = 500.
+export function formatUSD(n: number | null | undefined): string {
   if (n === null || n === undefined) return "-";
   const neg = n < 0;
   const abs = Math.abs(n);
-  const s = abs.toLocaleString("id-ID").replace(/,/g, ".");
-  return (neg ? "-" : "") + "Rp" + s;
+  const dollars = Math.floor(abs / 100);
+  const cents = abs % 100;
+  const s =
+    dollars.toLocaleString("en-US") + "." + String(cents).padStart(2, "0");
+  return (neg ? "-" : "") + "$" + s;
 }
 
 export function formatDate(iso: string | null | undefined): string {

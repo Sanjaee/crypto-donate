@@ -2,6 +2,8 @@ package donations
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -9,35 +11,42 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"mediashare/backend/internal/config"
 	"mediashare/backend/internal/models"
-	"mediashare/backend/internal/payments"
+	"mediashare/backend/internal/plisio"
 	"mediashare/backend/internal/util"
 )
 
 type Handler struct {
 	DB             *gorm.DB
-	Midtrans       *payments.MidtransClient
+	Plisio         *plisio.Client
+	Config         *config.Config
 	PlatformFeePct int64
 }
 
 type createDonationRequest struct {
-	Username   string `json:"username" binding:"required"`
-	DonorName  string `json:"donorName" binding:"required"`
-	Amount     int64  `json:"amount" binding:"required,min=1000"`
-	Message    string `json:"message"`
-	MediaType  string `json:"mediaType"`
-	MediaURL   string `json:"mediaUrl"`
+	Username  string `json:"username" binding:"required"`
+	DonorName string `json:"donorName" binding:"required"`
+	Amount    int64  `json:"amount" binding:"required"`
+	Currency  string `json:"currency"` // crypto: BTC, ETH, ...
+	Message   string `json:"message"`
+	MediaType string `json:"mediaType"`
+	MediaURL  string `json:"mediaUrl"`
 }
 
 type createDonationResponse struct {
-	DonationID string `json:"donationId"`
-	OrderID    string `json:"orderId"`
-	SnapToken  string `json:"snapToken"`
-	RedirectURL string `json:"redirectUrl"`
-	Amount     int64  `json:"amount"`
+	DonationID   string `json:"donationId"`
+	OrderID      string `json:"orderId"`
+	TxnID        string `json:"txnId"`
+	InvoiceURL   string `json:"invoiceUrl"`
+	QRCode       string `json:"qrCode"`
+	Currency     string `json:"currency"`
+	CryptoAmount string `json:"cryptoAmount"`
+	WalletHash   string `json:"walletHash"`
+	Amount       int64  `json:"amount"`
 }
 
-// Create membuat donation + payment Midtrans.
+// Create membuat donation + invoice crypto (Plisio).
 func (h *Handler) Create(c *gin.Context) {
 	var req createDonationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -70,7 +79,12 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	if req.Amount < setting.MinimumDonation {
-		util.Error(c, http.StatusBadRequest, "minimum amount is "+util.FormatIDR(setting.MinimumDonation))
+		util.Error(c, http.StatusBadRequest, "minimum amount is "+util.FormatUSD(setting.MinimumDonation))
+		return
+	}
+
+	if !plisio.IsConfigured(h.Plisio) {
+		util.Error(c, http.StatusServiceUnavailable, "Payment provider is not configured yet")
 		return
 	}
 
@@ -115,7 +129,7 @@ func (h *Handler) Create(c *gin.Context) {
 	payment := &models.PaymentTransaction{
 		DonationID:  donation.ID,
 		OrderID:     orderID,
-		Provider:    "MIDTRANS",
+		Provider:    "PLISIO",
 		GrossAmount: req.Amount,
 		Status:      models.PaymentStatusPending,
 	}
@@ -124,28 +138,82 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	if h.Midtrans.ServerKey == "" && !h.Midtrans.Mock {
-		util.InternalError(c, "midtrans is not configured")
+	inv, err := h.createInvoice(req, orderID, user.Username)
+	if err != nil {
+		slog.Error("donation.create_invoice_error", "order_id", orderID, "error", err)
+		h.DB.Model(payment).Update("raw_response", mustJSON(map[string]any{"error": err.Error()}))
+		util.Error(c, http.StatusBadGateway, "failed to create crypto invoice")
 		return
 	}
-
-	snap, err := h.Midtrans.CreateSnap(orderID, req.Amount, "Dukungan untuk "+user.Username)
-	if err != nil || snap.Token == "" {
-		raw, _ := json.Marshal(snap)
-		h.DB.Model(payment).Update("raw_response", string(raw))
-		util.Error(c, http.StatusBadGateway, "failed to create midtrans payment")
-		return
+	if inv != nil {
+		raw, _ := json.Marshal(inv)
+		h.DB.Model(payment).Updates(map[string]any{
+			"raw_response":   string(raw),
+			"transaction_id": inv.TxnID,
+		})
 	}
-
-	raw, _ := json.Marshal(snap)
-	h.DB.Model(payment).Update("raw_response", string(raw))
 
 	util.OK(c, createDonationResponse{
-		DonationID:  donation.ID.String(),
-		OrderID:     orderID,
-		SnapToken:   snap.Token,
-		RedirectURL: snap.RedirectURL,
-		Amount:      req.Amount,
+		DonationID:   donation.ID.String(),
+		OrderID:      orderID,
+		TxnID:        inv.TxnID,
+		InvoiceURL:   inv.InvoiceURL,
+		QRCode:       qrCodeForInvoice(inv),
+		Currency:     orDefault(inv.Currency, "BTC"),
+		CryptoAmount: inv.Amount,
+		WalletHash:   inv.WalletHash,
+		Amount:       req.Amount,
+	})
+}
+
+// qrCodeForInvoice mengambil QR dari response create-invoice Plisio.
+// Jika white-label tidak menyediakan qr_code, generate dari wallet address
+// atau invoice URL (data invoice asli, bukan simulasi).
+func qrCodeForInvoice(inv *plisio.Invoice) string {
+	if inv == nil {
+		return ""
+	}
+	if inv.QRCode != "" {
+		return inv.QRCode
+	}
+	if inv.WalletHash != "" {
+		if qr := plisio.QRDataURI(inv.WalletHash, 256); qr != "" {
+			return qr
+		}
+	}
+	if inv.InvoiceURL != "" {
+		return plisio.QRDataURI(inv.InvoiceURL, 256)
+	}
+	return ""
+}
+
+// createInvoice membuat invoice Plisio sungguhan.
+func (h *Handler) createInvoice(req createDonationRequest, orderID, username string) (*plisio.Invoice, error) {
+	if h.Plisio == nil || h.Plisio.APIKey == "" {
+		return nil, fmt.Errorf("payment provider is not configured")
+	}
+
+	// callback base URL: utamakan PLISIO_WEBHOOK_BASE_URL (domain/tunnel),
+	// fallback ke NEXT_PUBLIC_APP_URL. localhost tidak bisa diakses Plisio.
+	cbBase := h.Config.PlisioWebhookBase
+	if cbBase == "" {
+		cbBase = h.Config.PublicBaseURL
+	}
+	cb := cbBase + "/api/webhooks/plisio?json=true"
+	currency := strings.ToUpper(strings.TrimSpace(req.Currency))
+	if currency == "" {
+		currency = "BTC"
+	}
+	return h.Plisio.CreateInvoice(plisio.CreateInvoiceParams{
+		Currency:        currency,
+		AllowedPsysCids: currency, // hanya tampilkan QR untuk currency terpilih
+		OrderName:       "Support for " + username,
+		OrderNumber:     orderID,
+		SourceCurrency:  "USD",
+		SourceAmount:    float64(req.Amount) / 100, // cents -> USD
+		Description:     req.Message,
+		CallbackURL:     cb,
+		ExpireMin:       60,
 	})
 }
 
@@ -169,7 +237,7 @@ func (h *Handler) Get(c *gin.Context) {
 
 	donationID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		util.BadRequest(c, "id tidak valid")
+		util.BadRequest(c, "invalid id")
 		return
 	}
 
@@ -193,4 +261,16 @@ func mediaTypeEnabled(s models.StreamSetting, mediaType string) bool {
 		return s.ImageEnabled
 	}
 	return false
+}
+
+func orDefault(v, def string) string {
+	if v == "" {
+		return def
+	}
+	return v
+}
+
+func mustJSON(v any) string {
+	b, _ := json.Marshal(v)
+	return string(b)
 }

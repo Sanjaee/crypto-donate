@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatIDR } from "@/lib/format";
+import { formatUSD } from "@/lib/format";
 import type { WidgetConfig, WidgetMedia } from "@/types";
 
 const POLL_INTERVAL_MS = 2000;
@@ -10,15 +10,29 @@ function isYouTube(type: string) {
   return type === "youtube";
 }
 
-export default function WidgetClient({ streamKey }: { streamKey: string }) {
+export default function WidgetClient({
+  streamKey,
+  demo = false,
+}: {
+  streamKey: string;
+  demo?: boolean;
+}) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [media, setMedia] = useState<WidgetMedia | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const playingRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Bunyi saat ada media masuk (pembayaran terkonfirmasi).
+  useEffect(() => {
+    if (media?.id && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    }
+  }, [media]);
 
   // Fetch display config once.
   useEffect(() => {
-    if (!streamKey) return;
+    if (demo || !streamKey) return;
     fetch(
       `/api/widgets/mediashare/config?streamKey=${encodeURIComponent(streamKey)}`,
     )
@@ -29,7 +43,7 @@ export default function WidgetClient({ streamKey }: { streamKey: string }) {
 
   // Poll the queue.
   useEffect(() => {
-    if (!streamKey) return;
+    if (demo || !streamKey) return;
     let stopped = false;
     let timer: ReturnType<typeof setInterval> | undefined;
 
@@ -49,7 +63,7 @@ export default function WidgetClient({ streamKey }: { streamKey: string }) {
           playingRef.current = true;
         }
       } catch {
-        setError("Unable to connect to the widget");
+        // abaikan — widget tetap mencoba pada polling berikutnya.
       }
     }
 
@@ -90,7 +104,31 @@ export default function WidgetClient({ streamKey }: { streamKey: string }) {
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-transparent">
-      {media && (
+      <audio ref={audioRef} src="/bgm.mp3" preload="auto" />
+      {demo ? (
+        // Mode demo: contoh media dari tm.mp4
+        <div className="absolute inset-0 flex animate-fade-in-up items-center justify-center">
+          <div className="w-full max-w-3xl px-4">
+            <video
+              src="/tm.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="aspect-video w-full rounded-xl object-cover shadow-2xl"
+            />
+            <div className="mt-6 rounded-2xl border bg-black/70 p-6 text-white shadow-2xl backdrop-blur">
+              <p className="text-xl font-bold">Sample Media</p>
+              <p className="mt-1 text-2xl font-extrabold text-emerald-400">
+                Demo video
+              </p>
+              <p className="mt-2 text-lg">
+                Widget media share — contoh tampilan media.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : media ? (
         <div className="absolute inset-0 flex animate-fade-in-up items-center justify-center">
           <div className="w-full max-w-3xl px-4">
             {isYouTube(media.mediaType) ? (
@@ -119,7 +157,7 @@ export default function WidgetClient({ streamKey }: { streamKey: string }) {
                 )}
                 {config?.showAmount && (
                   <p className="mt-1 text-2xl font-extrabold text-emerald-400">
-                    {formatIDR(media.amount)}
+                    {formatUSD(media.amount)}
                   </p>
                 )}
                 {config?.showMessage && media.message && (
@@ -129,19 +167,11 @@ export default function WidgetClient({ streamKey }: { streamKey: string }) {
             )}
           </div>
         </div>
-      )}
-
-      {!media && (
+      ) : (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="animate-pulse text-sm text-white/40">
             Waiting for support...
           </p>
-        </div>
-      )}
-
-      {error && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded bg-red-600/80 px-4 py-2 text-sm text-white">
-          {error}
         </div>
       )}
     </div>

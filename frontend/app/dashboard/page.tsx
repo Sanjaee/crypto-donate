@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { serverApi } from "@/lib/api";
-import { formatIDR } from "@/lib/format";
+import { formatUSD } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
           { label: "Queued Media", value: stats?.queuedMedia, icon: Tv },
           {
             label: "Total Received",
-            value: stats ? formatIDR(stats.totalReceived) : null,
+            value: stats ? formatUSD(stats.totalReceived) : null,
             icon: PiggyBank,
           },
         ].map((s) => (

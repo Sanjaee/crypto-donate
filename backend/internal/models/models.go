@@ -61,7 +61,7 @@ type Wallet struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;uniqueIndex;not null" json:"userId"`
 	Balance   int64     `gorm:"not null;default:0" json:"balance"`
-	Currency  string    `gorm:"size:10;not null;default:IDR" json:"currency"`
+	Currency  string    `gorm:"size:10;not null;default:USD" json:"currency"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -99,7 +99,7 @@ type PaymentTransaction struct {
 	ID            uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	DonationID    uuid.UUID  `gorm:"type:uuid;index;not null" json:"donationId"`
 	OrderID       string     `gorm:"size:100;uniqueIndex;not null" json:"orderId"`
-	Provider      string     `gorm:"size:20;not null;default:MIDTRANS" json:"provider"`
+	Provider      string     `gorm:"size:20;not null;default:PLISIO" json:"provider"`
 	GrossAmount   int64      `gorm:"not null" json:"grossAmount"`
 	Status        string     `gorm:"size:20;not null;default:PENDING" json:"status"`
 	PaymentType   string     `gorm:"size:50" json:"paymentType"`
@@ -126,7 +126,7 @@ type StreamSetting struct {
 	ID              uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID          uuid.UUID `gorm:"type:uuid;uniqueIndex;not null" json:"userId"`
 	StreamKey       string    `gorm:"size:64;uniqueIndex;not null" json:"streamKey"`
-	MinimumDonation int64     `gorm:"not null;default:10000" json:"minimumDonation"`
+	MinimumDonation int64     `gorm:"not null;default:100" json:"minimumDonation"`
 	DefaultDuration int       `gorm:"not null;default:10" json:"defaultDuration"`
 	YouTubeEnabled  bool      `gorm:"column:youtube_enabled;not null;default:true" json:"youtubeEnabled"`
 	TikTokEnabled   bool      `gorm:"column:tiktok_enabled;not null;default:true" json:"tiktokEnabled"`
