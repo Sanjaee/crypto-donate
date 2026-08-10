@@ -66,6 +66,8 @@ export type StreamSetting = {
   showDonorName: boolean;
   showMessage: boolean;
   showAmount: boolean;
+  qrBgColor?: string;
+  qrColor?: string;
 };
 
 export type PublicProfile = {

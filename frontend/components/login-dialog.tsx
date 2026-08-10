@@ -39,7 +39,7 @@ function GoogleLoginDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader className="text-center">
-          <DialogTitle className="text-xl">Sign in to MediaShare</DialogTitle>
+          <DialogTitle className="text-xl">Sign in to TipChain</DialogTitle>
           <DialogDescription>
             Continue to manage your widget &amp; support.
           </DialogDescription>
@@ -54,7 +54,7 @@ function GoogleLoginDialog({ open, onOpenChange }: { open: boolean; onOpenChange
             Continue with Google
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            By signing in, you agree to MediaShare&apos;s terms of service.
+            By signing in, you agree to TipChain&apos;s terms of service.
           </p>
         </div>
       </DialogContent>

@@ -3,6 +3,7 @@ package streamsettings
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -35,6 +36,8 @@ func (h *Handler) Get(c *gin.Context) {
 			ShowDonorName:   true,
 			ShowMessage:     true,
 			ShowAmount:      true,
+			QRBgColor:       "#F7931A",
+			QRColor:         "#000000",
 		}
 		h.DB.Create(&setting)
 	}
@@ -51,6 +54,8 @@ type updateRequest struct {
 	ShowDonorName   *bool  `json:"showDonorName"`
 	ShowMessage     *bool  `json:"showMessage"`
 	ShowAmount      *bool  `json:"showAmount"`
+	QRBgColor       *string `json:"qrBgColor"`
+	QRColor         *string `json:"qrColor"`
 }
 
 // Update PATCH /stream-settings.
@@ -99,6 +104,16 @@ func (h *Handler) Update(c *gin.Context) {
 	}
 	if req.ShowAmount != nil {
 		updates["show_amount"] = *req.ShowAmount
+	}
+	if req.QRBgColor != nil {
+		if v := strings.TrimSpace(*req.QRBgColor); v != "" {
+			updates["qr_bg_color"] = v
+		}
+	}
+	if req.QRColor != nil {
+		if v := strings.TrimSpace(*req.QRColor); v != "" {
+			updates["qr_color"] = v
+		}
 	}
 	if len(updates) == 0 {
 		util.BadRequest(c, "no changes provided")

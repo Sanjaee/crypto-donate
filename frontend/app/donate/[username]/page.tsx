@@ -151,7 +151,7 @@ export default function DonatePage() {
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="container mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <Link href="/" className="font-bold">
-            Media<span className="text-primary">Share</span>
+            Tip<span className="text-primary">Chain</span>
           </Link>
           <Badge variant="outline">/donate/{profile.username}</Badge>
         </div>

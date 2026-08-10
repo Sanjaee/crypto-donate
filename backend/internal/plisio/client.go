@@ -143,6 +143,8 @@ type Operation struct {
 	Type           string `json:"type"`
 	Status         string `json:"status"` // new / pending / completed / expired / cancelled / error
 	Amount         string `json:"amount"`
+	PendingAmount  string `json:"pending_amount"`
+	ReceivedAmount string `json:"received_amount"`
 	Currency       string `json:"currency"`
 	SourceCurrency string `json:"source_currency"`
 	SourceAmount   string `json:"source_amount"`

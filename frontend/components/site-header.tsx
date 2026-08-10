@@ -9,7 +9,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur">
       <div className="container mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <Link href="/" className="font-bold tracking-tight">
-          Media<span className="text-primary">Share</span>
+          Tip<span className="text-primary">Chain</span>
         </Link>
         <nav className="flex items-center gap-2">
           {session?.user ? (

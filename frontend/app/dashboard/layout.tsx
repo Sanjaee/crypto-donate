@@ -13,6 +13,7 @@ import {
   ExternalLink,
   LogOut,
   ShieldCheck,
+  QrCode,
 } from "lucide-react";
 
 const NAV = [
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/dashboard/donations", label: "Donations", icon: Gift },
   { href: "/dashboard/wallet", label: "Wallet", icon: Wallet },
   { href: "/dashboard/mediashare", label: "Media Share", icon: Tv },
+  { href: "/dashboard/qr", label: "QR", icon: QrCode },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ];
@@ -50,7 +52,7 @@ export default async function DashboardLayout({
       <aside className="hidden w-60 shrink-0 border-r bg-muted/30 md:block">
         <div className="flex h-full flex-col p-4">
           <Link href="/dashboard" className="mb-6 flex items-center font-bold">
-            Media<span className="text-primary">Share</span>
+            Tip<span className="text-primary">Chain</span>
           </Link>
           <nav className="flex flex-1 flex-col gap-1">
             {navItems.map((item) => (
@@ -83,8 +85,8 @@ export default async function DashboardLayout({
           <div className="flex items-center justify-between gap-2 px-4 py-3">
             <div className="flex items-center gap-2">
               {/* Brand (mobile) */}
-              <Link href="/dashboard" className="font-bold md:hidden">
-                Media<span className="text-primary">Share</span>
+              <Link href="/" className="font-bold md:hidden">
+                Tip<span className="text-primary">Chain</span>
               </Link>
               <span className="hidden text-sm text-muted-foreground md:inline">
                 Dashboard

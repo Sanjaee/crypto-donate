@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Copy, RefreshCw, MonitorPlay, ClipboardCheck, Send } from "lucide-react";
 
-export default function MediaSharePage() {
+export default function TipChainPage() {
   const [setting, setSetting] = useState<StreamSetting | null>(null);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);

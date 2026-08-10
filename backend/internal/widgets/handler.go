@@ -16,8 +16,48 @@ import (
 )
 
 type Handler struct {
-	DB  *gorm.DB
-	Hub *realtime.Hub
+	DB             *gorm.DB
+	Hub            *realtime.Hub
+	PublicBaseURL  string
+}
+
+// QRData GET /widgets/qr/data?streamKey=xxx
+// Data untuk widget QR: URL halaman donate user.
+func (h *Handler) QRData(c *gin.Context) {
+	key := c.Query("streamKey")
+	if key == "" {
+		util.BadRequest(c, "streamKey is required")
+		return
+	}
+	var setting models.StreamSetting
+	if err := h.DB.Where("stream_key = ?", key).First(&setting).Error; err != nil {
+		util.Error(c, http.StatusNotFound, "invalid stream key")
+		return
+	}
+	var user models.User
+	if err := h.DB.First(&user, "id = ?", setting.UserID).Error; err != nil {
+		util.Error(c, http.StatusNotFound, "user not found")
+		return
+	}
+	base := h.PublicBaseURL
+	if base == "" {
+		base = "http://localhost"
+	}
+	bg := setting.QRBgColor
+	if bg == "" {
+		bg = "#F7931A"
+	}
+	fg := setting.QRColor
+	if fg == "" {
+		fg = "#000000"
+	}
+	util.OK(c, gin.H{
+		"username":  user.Username,
+		"name":      user.Name,
+		"donateUrl": base + "/donate/" + user.Username,
+		"bgColor":   bg,
+		"qrColor":   fg,
+	})
 }
 
 type mediaResponse struct {

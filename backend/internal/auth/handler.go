@@ -193,20 +193,43 @@ func (h *Handler) verifyCredentials(email, password string) (*models.User, bool)
 
 // createUserWithDefaults membuat user + wallet + stream settings atomically.
 func createUserWithDefaults(db *gorm.DB, user *models.User) error {
-	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(user).Error; err != nil {
-			return err
+	var lastErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		err := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(user).Error; err != nil {
+				return err
+			}
+			wallet := &models.Wallet{UserID: user.ID, Balance: 0, Currency: "USD"}
+			if err := tx.Create(wallet).Error; err != nil {
+				return err
+			}
+			settings := &models.StreamSetting{
+				UserID:    user.ID,
+				StreamKey: randomHex(32),
+			}
+			return tx.Create(settings).Error
+		})
+		if err == nil {
+			return nil
 		}
-		wallet := &models.Wallet{UserID: user.ID, Balance: 0, Currency: "USD"}
-		if err := tx.Create(wallet).Error; err != nil {
-			return err
+		lastErr = err
+		// Username bentrok (race) → buat username baru & retry.
+		if isUniqueViolation(err) && user.Username != "" {
+			user.ID = uuid.Nil // biarkan BeforeCreate generate id baru
+			user.Username = user.Username + "_" + randomHex(3)
+			continue
 		}
-		settings := &models.StreamSetting{
-			UserID:    user.ID,
-			StreamKey: randomHex(32),
-		}
-		return tx.Create(settings).Error
-	})
+		return err
+	}
+	return lastErr
+}
+
+// isUniqueViolation mendeteksi duplicate key PostgreSQL (SQLSTATE 23505).
+func isUniqueViolation(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "duplicate")
 }
 
 func uniqueUsername(db *gorm.DB, email string) string {

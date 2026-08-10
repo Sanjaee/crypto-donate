@@ -115,7 +115,7 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 	paymentsH := &payments.Handler{DB: db, Plisio: plisioClient, Hub: hub}
 	walletsH := &wallets.Handler{DB: db}
 	mediaH := &media.Handler{DB: db, Hub: hub}
-	widgetsH := &widgets.Handler{DB: db, Hub: hub}
+	widgetsH := &widgets.Handler{DB: db, Hub: hub, PublicBaseURL: cfg.PublicBaseURL}
 	settingsH := &streamsettings.Handler{DB: db}
 	adminH := &admin.Handler{DB: db}
 
@@ -141,6 +141,9 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 	widgetGroup.GET("/media", middleware.RateLimit(120, time.Minute), widgetsH.NextMedia)
 	widgetGroup.GET("/stream", middleware.RateLimit(120, time.Minute), widgetsH.Stream)
 	widgetGroup.POST("/:id/complete", middleware.RateLimit(120, time.Minute), widgetsH.Complete)
+
+	// ---- QR widget (public) ----
+	api.GET("/widgets/qr/data", middleware.RateLimit(120, time.Minute), widgetsH.QRData)
 
 	// ---- Internal (hanya dari Next.js server via INTERNAL_API_TOKEN) ----
 	internal := api.Group("", middleware.InternalAuth(cfg.InternalAPIToken))

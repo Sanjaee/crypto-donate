@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MediaShare — Support & Gifts for Creators",
+  title: "TipChain — Support & Gifts for Creators",
   description:
     "A Media Share / donation platform to receive support, process payments, and show donation media in real time.",
 };

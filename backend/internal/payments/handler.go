@@ -79,6 +79,8 @@ func (h *Handler) Status(c *gin.Context) {
 		return
 	}
 
+	var plisioStatus, pendingAmount, receivedAmount string
+
 	// Reconcile: masih pending + ada txn_id + Plisio terkonfigurasi.
 	if payment.Status == models.PaymentStatusPending &&
 		payment.TransactionID != nil &&
@@ -92,6 +94,9 @@ func (h *Handler) Status(c *gin.Context) {
 				"error", err.Error(),
 			)
 		} else if op != nil {
+			plisioStatus = op.Status
+			pendingAmount = op.PendingAmount
+			receivedAmount = op.ReceivedAmount
 			slog.Info("payment.reconcile",
 				"order_id", orderID,
 				"txn_id", *payment.TransactionID,
@@ -142,19 +147,31 @@ func (h *Handler) Status(c *gin.Context) {
 		walletHash = toString(data["wallet_hash"])
 		cryptoAmount = toString(data["amount"])
 		currency = toString(data["currency"])
+		if plisioStatus == "" {
+			plisioStatus = toString(data["status"])
+		}
+		if pendingAmount == "" {
+			pendingAmount = toString(data["pending_amount"])
+		}
+		if receivedAmount == "" {
+			receivedAmount = toString(data["received_amount"])
+		}
 	}
 	if currency == "" {
 		currency = payment.PaymentType
 	}
 
 	util.OK(c, gin.H{
-		"orderId":      payment.OrderID,
-		"status":       payment.Status,
-		"currency":     currency,
-		"cryptoAmount": cryptoAmount,
-		"walletHash":   walletHash,
-		"qrCode":       qrCode,
-		"grossAmount":  payment.GrossAmount,
+		"orderId":        payment.OrderID,
+		"status":         payment.Status,
+		"plisioStatus":   plisioStatus,
+		"currency":       currency,
+		"cryptoAmount":   cryptoAmount,
+		"pendingAmount":  pendingAmount,
+		"receivedAmount": receivedAmount,
+		"walletHash":     walletHash,
+		"qrCode":         qrCode,
+		"grossAmount":    payment.GrossAmount,
 	})
 }
 
@@ -411,6 +428,8 @@ func toString(v any) string {
 		return t
 	case float64:
 		return strconv.FormatFloat(t, 'f', -1, 64)
+	case nil:
+		return ""
 	default:
 		return fmt.Sprintf("%v", v)
 	}
