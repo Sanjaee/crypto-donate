@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { publicApi } from "@/lib/api";
+import { formatUSD } from "@/lib/format";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,12 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const POLL_MS = 3000;
 
@@ -119,6 +126,7 @@ export default function PaymentPage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-muted/40">
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="container mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
@@ -202,11 +210,37 @@ export default function PaymentPage() {
                 Send the amount below to the address (or scan the QR).
               </p>
 
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <p className="text-3xl font-extrabold">
-                  {(pendingRemaining || required || num(data.cryptoAmount)).toFixed(8)}{" "}
-                  <span className="text-primary">{data.currency || "BTC"}</span>
+              <div className="mt-4">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={copyRemaining}
+                      className="mx-auto flex cursor-pointer items-center justify-center gap-2 text-3xl font-extrabold text-primary transition-colors hover:text-primary/80"
+                    >
+                      {(pendingRemaining || required || num(data.cryptoAmount)).toFixed(8)}{" "}
+                      <span className="text-primary">{data.currency || "BTC"}</span>
+                      {copiedRemaining ? (
+                        <Check className="h-5 w-5 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-5 w-5 opacity-50 hover:opacity-100" />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{copiedRemaining ? "Copied!" : "Click to copy amount"}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {pendingRemaining > 0
+                    ? `Remaining: ${pendingRemaining.toFixed(8)} ${data.currency}`
+                    : "Click the amount to copy"}
                 </p>
+                {data.grossAmount > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Total {formatUSD(data.grossAmount)} includes platform fee.
+                  </p>
+                )}
               </div>
 
               {data.qrCode ? (
@@ -359,7 +393,8 @@ export default function PaymentPage() {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(200%); }
         }
-      `}</style>
+      `}      </style>
     </div>
+    </TooltipProvider>
   );
 }

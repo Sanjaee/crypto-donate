@@ -134,3 +134,40 @@ type stats struct {
 	QueuedMedia    int64 `json:"queuedMedia"`
 	TotalReceived  int64 `json:"totalReceived"`
 }
+
+type platformConfigResponse struct {
+	PlatformFeePct int64 `json:"platformFeePct"`
+}
+
+type updateConfigRequest struct {
+	PlatformFeePct *int64 `json:"platformFeePct"`
+}
+
+// GetConfig GET /admin/config — pengaturan platform (fee, dll).
+func (h *Handler) GetConfig(c *gin.Context) {
+	if _, ok := h.requireAdmin(c); !ok {
+		return
+	}
+	util.OK(c, platformConfigResponse{PlatformFeePct: models.GetPlatformFee(h.DB)})
+}
+
+// UpdateConfig PATCH /admin/config — ubah pengaturan platform.
+func (h *Handler) UpdateConfig(c *gin.Context) {
+	if _, ok := h.requireAdmin(c); !ok {
+		return
+	}
+	var req updateConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		util.BadRequest(c, "invalid data")
+		return
+	}
+	if req.PlatformFeePct == nil {
+		util.BadRequest(c, "platformFeePct is required")
+		return
+	}
+	if err := models.SetPlatformFee(h.DB, *req.PlatformFeePct); err != nil {
+		util.BadRequest(c, err.Error())
+		return
+	}
+	util.OK(c, platformConfigResponse{PlatformFeePct: *req.PlatformFeePct})
+}

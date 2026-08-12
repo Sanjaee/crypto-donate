@@ -98,6 +98,8 @@ export type WidgetMedia = {
 export type Withdrawal = {
   id: string;
   amount: number;
+  platformFee: number;
+  netAmount: number;
   currency: string;
   cryptoAmount?: string;
   toAddress: string;

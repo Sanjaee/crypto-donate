@@ -14,10 +14,11 @@ type Handler struct {
 }
 
 type summary struct {
-	Balance       int64 `json:"balance"`
-	Pending       int64 `json:"pending"`
-	TotalReceived int64 `json:"totalReceived"`
-	Currency      string `json:"currency"`
+	Balance        int64  `json:"balance"`
+	Pending        int64  `json:"pending"`
+	TotalReceived  int64  `json:"totalReceived"`
+	Currency       string `json:"currency"`
+	PlatformFeePct int64  `json:"platformFeePct"`
 }
 
 // Summary GET /wallet.
@@ -56,10 +57,11 @@ func (h *Handler) Summary(c *gin.Context) {
 		Scan(&pending)
 
 	util.OK(c, summary{
-		Balance:       wallet.Balance,
-		Pending:       pending,
-		TotalReceived: received,
-		Currency:      wallet.Currency,
+		Balance:        wallet.Balance,
+		Pending:        pending,
+		TotalReceived:  received,
+		Currency:       wallet.Currency,
+		PlatformFeePct: models.GetPlatformFee(h.DB),
 	})
 }
 

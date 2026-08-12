@@ -10,6 +10,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Loader2, Send, ChevronDown, Copy } from "lucide-react";
 
 type CryptoMethod = {
@@ -43,6 +51,7 @@ const statusVariant: Record<string, "success" | "warning" | "destructive" | "sec
 
 export default function WithdrawForm() {
   const [balance, setBalance] = useState(0);
+  const [feePct, setFeePct] = useState(0);
   const [coins, setCoins] = useState<CryptoMethod[]>(DEFAULT_COINS);
   const [currency, setCurrency] = useState("SOL");
   const [amount, setAmount] = useState(500);
@@ -50,10 +59,17 @@ export default function WithdrawForm() {
   const [history, setHistory] = useState<Withdrawal[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
-    clientApi<{ balance: number }>("/wallet")
-      .then((w) => setBalance(w.balance))
+    clientApi<{
+      balance: number;
+      platformFeePct?: number;
+    }>("/wallet")
+      .then((w) => {
+        setBalance(w.balance);
+        setFeePct(w.platformFeePct ?? 0);
+      })
       .catch(() => {});
     publicApi<CryptoMethod[]>("/payments/currencies")
       .then((res) => {
@@ -74,10 +90,12 @@ export default function WithdrawForm() {
     [coins, currency],
   );
   const priceUsd = Number(selected?.priceUsd) || 0;
+  const platformFee = Math.round((amount * feePct) / 100);
+  const netAmount = amount - platformFee;
   const cryptoEstimate =
-    priceUsd > 0 ? (amount / 100 / priceUsd).toFixed(8) : "";
+    priceUsd > 0 ? (netAmount / 100 / priceUsd).toFixed(8) : "";
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
+  function openConfirm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!currency || !address.trim()) {
       toast.error("Please fill in the destination address");
@@ -91,6 +109,10 @@ export default function WithdrawForm() {
       toast.error("Insufficient balance");
       return;
     }
+    setConfirmOpen(true);
+  }
+
+  async function doWithdraw() {
     setSubmitting(true);
     try {
       const res = await clientApi<Withdrawal>("/withdrawals", {
@@ -106,6 +128,7 @@ export default function WithdrawForm() {
       setBalance(updated.balance);
       setHistory((prev) => [res, ...prev].slice(0, 50));
       setAddress("");
+      setConfirmOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Withdrawal failed");
     } finally {
@@ -120,7 +143,7 @@ export default function WithdrawForm() {
           <CardTitle className="text-base">Withdraw</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={submit} className="space-y-4">
+          <form onSubmit={openConfirm} className="space-y-4">
             <div className="rounded-lg bg-muted p-3 text-sm">
               Available balance:{" "}
               <span className="font-bold">{formatUSD(balance)}</span>
@@ -256,12 +279,73 @@ export default function WithdrawForm() {
               )}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Balance is only deducted after the gateway approves the
-              withdrawal.
+              Platform fee ({feePct}%) is deducted from the amount. Balance is
+              only deducted after the gateway approves the withdrawal.
             </p>
           </form>
         </CardContent>
       </Card>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirm withdrawal</DialogTitle>
+            <DialogDescription>
+              Review the amounts before sending.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 rounded-lg border p-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Withdraw</span>
+              <span className="font-semibold">{formatUSD(amount)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">
+                Platform fee ({feePct}%)
+              </span>
+              <span className="font-semibold text-destructive">
+                -{formatUSD(platformFee)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between border-t pt-2">
+              <span className="font-medium">You receive</span>
+              <span className="font-bold text-primary">
+                {formatUSD(netAmount)}
+              </span>
+            </div>
+            {cryptoEstimate && (
+              <p className="text-xs text-muted-foreground">
+                ~ {cryptoEstimate} {currency} sent to your address
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmOpen(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={doWithdraw}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" /> Confirm
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>

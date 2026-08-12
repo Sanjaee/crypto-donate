@@ -52,6 +52,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.StreamSetting{},
 		&models.Withdrawal{},
 		&models.AuditLog{},
+		&models.GlobalConfig{},
 	)
 }
 

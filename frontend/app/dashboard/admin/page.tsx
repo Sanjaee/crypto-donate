@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { serverApi } from "@/lib/api";
 import { formatUSD } from "@/lib/format";
+import PlatformFeeCard from "@/components/platform-fee-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -85,6 +86,10 @@ export default async function AdminPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <PlatformFeeCard />
       </div>
 
       <Card>

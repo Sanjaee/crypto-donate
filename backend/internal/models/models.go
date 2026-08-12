@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -151,14 +153,45 @@ const (
 	WithdrawalFailed    = "FAILED"
 )
 
+// GlobalConfig menyimpan pengaturan platform (fee, dll).
+// Satu baris per key. Diisi dari admin, dibaca saat settle/withdraw.
+type GlobalConfig struct {
+	Key       string `gorm:"size:50;primaryKey" json:"key"`
+	Value     string `gorm:"size:200;not null" json:"value"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// GetPlatformFee mengembalikan fee persen (contoh 5 = 5%) dari config global.
+func GetPlatformFee(db *gorm.DB) int64 {
+	var cfg GlobalConfig
+	if err := db.Where("`key` = ?", "platform_fee_pct").First(&cfg).Error; err != nil {
+		return 5 // default 5%
+	}
+	n, _ := strconv.ParseInt(cfg.Value, 10, 64)
+	if n <= 0 || n > 50 {
+		return 5
+	}
+	return n
+}
+
+// SetPlatformFee memperbarui fee persen.
+func SetPlatformFee(db *gorm.DB, pct int64) error {
+	if pct < 0 || pct > 50 {
+		return fmt.Errorf("fee must be 0-50%%")
+	}
+	return db.Save(&GlobalConfig{Key: "platform_fee_pct", Value: strconv.FormatInt(pct, 10), UpdatedAt: time.Now()}).Error
+}
+
 type Withdrawal struct {
 	ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID       uuid.UUID `gorm:"type:uuid;index;not null" json:"userId"`
-	Amount       int64     `gorm:"not null" json:"amount"` // USD cents
+	Amount       int64     `gorm:"not null" json:"amount"` // USD cents (debit penuh)
+	PlatformFee  int64     `gorm:"not null;default:0" json:"platformFee"`
+	NetAmount    int64     `gorm:"not null;default:0" json:"netAmount"` // Amount - PlatformFee
 	Currency     string    `gorm:"size:20;not null" json:"currency"`
 	ToAddress    string    `gorm:"size:200;not null" json:"toAddress"`
 	CryptoAmount string    `gorm:"size:50" json:"cryptoAmount"`
-	Fee          string    `gorm:"size:50" json:"fee"`
+	Fee          string    `gorm:"size:50" json:"fee"` // network fee dari API
 	Status       string    `gorm:"size:20;not null;default:PENDING" json:"status"`
 	RefID        string    `gorm:"size:100" json:"refId"` // operation id dari API
 	TxURL        string    `gorm:"size:500" json:"txUrl"`

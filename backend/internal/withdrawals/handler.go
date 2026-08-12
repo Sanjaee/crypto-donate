@@ -42,6 +42,8 @@ type createRequest struct {
 type withdrawalResponse struct {
 	ID           string `json:"id"`
 	Amount       int64  `json:"amount"`
+	PlatformFee  int64  `json:"platformFee"`
+	NetAmount    int64  `json:"netAmount"`
 	Currency     string `json:"currency"`
 	CryptoAmount string `json:"cryptoAmount"`
 	ToAddress    string `json:"toAddress"`
@@ -114,7 +116,11 @@ func (h *Handler) Create(c *gin.Context) {
 		util.Error(c, http.StatusBadRequest, "unsupported currency")
 		return
 	}
-	cryptoAmount := float64(req.Amount) / 100.0 / priceUsd
+	// Platform fee: potong dari jumlah withdraw, wallet tetap ter-debit penuh.
+	platformFee := req.Amount * models.GetPlatformFee(h.DB) / 100
+	netAmount := req.Amount - platformFee
+
+	cryptoAmount := float64(netAmount) / 100.0 / priceUsd
 	cryptoAmountStr := strconv.FormatFloat(cryptoAmount, 'f', 8, 64)
 
 	// Duplikat & pending check.
@@ -128,11 +134,13 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	w := &models.Withdrawal{
-		UserID:    uid,
-		Amount:    req.Amount,
-		Currency:  req.Currency,
-		ToAddress: req.ToAddress,
-		Status:    models.WithdrawalProcessing,
+		UserID:      uid,
+		Amount:      req.Amount,
+		PlatformFee: platformFee,
+		NetAmount:   netAmount,
+		Currency:    req.Currency,
+		ToAddress:   req.ToAddress,
+		Status:      models.WithdrawalProcessing,
 	}
 	if err := h.DB.Create(w).Error; err != nil {
 		util.InternalError(c, "failed to create withdrawal")
@@ -233,6 +241,8 @@ func toResponse(w *models.Withdrawal) withdrawalResponse {
 	return withdrawalResponse{
 		ID:           w.ID.String(),
 		Amount:       w.Amount,
+		PlatformFee:  w.PlatformFee,
+		NetAmount:    w.NetAmount,
 		Currency:     w.Currency,
 		CryptoAmount: w.CryptoAmount,
 		ToAddress:    w.ToAddress,

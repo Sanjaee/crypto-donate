@@ -120,7 +120,7 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 
 	authH := &auth.Handler{DB: db, AdminEmails: cfg.AdminEmails}
 	usersH := &users.Handler{DB: db}
-	donationsH := &donations.Handler{DB: db, Plisio: plisioClient, Config: cfg, PlatformFeePct: cfg.PlatformFeePct}
+	donationsH := &donations.Handler{DB: db, Plisio: plisioClient, Config: cfg}
 	paymentsH := &payments.Handler{DB: db, Plisio: plisioClient, Hub: hub}
 	walletsH := &wallets.Handler{DB: db}
 	mediaH := &media.Handler{DB: db, Hub: hub}
@@ -174,6 +174,8 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 	// ---- Admin (khusus role ADMIN) ----
 	authed.GET("/admin/users", middleware.RateLimitUser(120, time.Minute), adminH.ListUsers)
 	authed.GET("/admin/stats", middleware.RateLimitUser(120, time.Minute), adminH.GlobalStats)
+	authed.GET("/admin/config", middleware.RateLimitUser(120, time.Minute), adminH.GetConfig)
+	authed.PATCH("/admin/config", middleware.RateLimitUser(30, time.Minute), adminH.UpdateConfig)
 
 	authed.GET("/wallet", walletsH.Summary)
 	authed.GET("/wallet/transactions", walletsH.Transactions)

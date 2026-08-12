@@ -18,7 +18,6 @@ type Config struct {
 	AdminEmails       []string
 
 	InternalAPIToken string
-	PlatformFeePct   int64
 	CORSOrigins      []string
 
 	CloudinaryCloudName string
@@ -45,7 +44,6 @@ func Load() *Config {
 		PlisioWebhookBase:   getEnv("PLISIO_WEBHOOK_BASE_URL", ""),
 		AdminEmails:         splitCSV(getEnv("ADMIN_EMAILS", "")),
 		InternalAPIToken:    getEnv("INTERNAL_API_TOKEN", ""),
-		PlatformFeePct:      getEnvInt64("PLATFORM_FEE_PERCENT", 5),
 		CORSOrigins:         splitCSV(getEnv("CORS_ORIGINS", "http://localhost:3000")),
 		CloudinaryCloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
 		CloudinaryAPIKey:    getEnv("CLOUDINARY_API_KEY", ""),
@@ -64,15 +62,6 @@ func getEnvBool(key string, fallback bool) bool {
 	if v := os.Getenv(key); v != "" {
 		if b, err := strconv.ParseBool(v); err == nil {
 			return b
-		}
-	}
-	return fallback
-}
-
-func getEnvInt64(key string, fallback int64) int64 {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-			return n
 		}
 	}
 	return fallback

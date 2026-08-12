@@ -18,10 +18,9 @@ import (
 )
 
 type Handler struct {
-	DB             *gorm.DB
-	Plisio         *plisio.Client
-	Config         *config.Config
-	PlatformFeePct int64
+	DB     *gorm.DB
+	Plisio *plisio.Client
+	Config *config.Config
 }
 
 type createDonationRequest struct {
@@ -103,8 +102,9 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	// Platform fee + net amount (dihitung server, tidak dari frontend).
-	platformFee := req.Amount * h.PlatformFeePct / 100
-	netAmount := req.Amount - platformFee
+	// Fee DITAMBAHKAN di atas (donor bayar amount + fee), creator terima full amount.
+	platformFee := req.Amount * models.GetPlatformFee(h.DB) / 100
+	gross := req.Amount + platformFee
 
 	donation := &models.Donation{
 		UserID:        user.ID,
@@ -116,7 +116,7 @@ func (h *Handler) Create(c *gin.Context) {
 		Status:        models.DonationStatusPending,
 		PaymentStatus: models.PaymentStatusPending,
 		PlatformFee:   platformFee,
-		NetAmount:     netAmount,
+		NetAmount:     req.Amount,
 	}
 	if err := h.DB.Create(donation).Error; err != nil {
 		util.InternalError(c, "failed to create donation")
@@ -130,7 +130,7 @@ func (h *Handler) Create(c *gin.Context) {
 		DonationID:  donation.ID,
 		OrderID:     orderID,
 		Provider:    "PLISIO",
-		GrossAmount: req.Amount,
+		GrossAmount: gross,
 		Status:      models.PaymentStatusPending,
 	}
 	if err := h.DB.Create(payment).Error; err != nil {
@@ -138,7 +138,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	inv, err := h.createInvoice(req, orderID, user.Username)
+	inv, err := h.createInvoice(req, gross, orderID, user.Username)
 	if err != nil {
 		slog.Error("donation.create_invoice_error", "order_id", orderID, "error", err)
 		h.DB.Model(payment).Update("raw_response", mustJSON(map[string]any{"error": err.Error()}))
@@ -162,7 +162,7 @@ func (h *Handler) Create(c *gin.Context) {
 		Currency:     orDefault(inv.Currency, "BTC"),
 		CryptoAmount: inv.Amount,
 		WalletHash:   inv.WalletHash,
-		Amount:       req.Amount,
+		Amount:       gross,
 	})
 }
 
@@ -188,7 +188,8 @@ func qrCodeForInvoice(inv *plisio.Invoice) string {
 }
 
 // createInvoice membuat invoice Plisio sungguhan.
-func (h *Handler) createInvoice(req createDonationRequest, orderID, username string) (*plisio.Invoice, error) {
+// gross = amount donor wajib bayar (sudah termasuk platform fee, cents -> USD).
+func (h *Handler) createInvoice(req createDonationRequest, gross int64, orderID, username string) (*plisio.Invoice, error) {
 	if h.Plisio == nil || h.Plisio.APIKey == "" {
 		return nil, fmt.Errorf("payment provider is not configured")
 	}
@@ -210,7 +211,7 @@ func (h *Handler) createInvoice(req createDonationRequest, orderID, username str
 		OrderName:       "Support for " + username,
 		OrderNumber:     orderID,
 		SourceCurrency:  "USD",
-		SourceAmount:    float64(req.Amount) / 100, // cents -> USD
+		SourceAmount:    float64(gross) / 100, // cents -> USD (termasuk fee)
 		Description:     req.Message,
 		CallbackURL:     cb,
 		ExpireMin:       60,
