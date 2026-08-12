@@ -50,6 +50,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.PaymentTransaction{},
 		&models.MediaItem{},
 		&models.StreamSetting{},
+		&models.Withdrawal{},
 		&models.AuditLog{},
 	)
 }

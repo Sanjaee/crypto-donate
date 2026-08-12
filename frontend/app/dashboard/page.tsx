@@ -2,9 +2,10 @@ import { auth } from "@/lib/auth";
 import { serverApi } from "@/lib/api";
 import { formatUSD } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Gift, HandCoins, Tv, PiggyBank } from "lucide-react";
+import WithdrawForm from "@/components/withdraw-form";
+import ProfileCard from "@/components/profile-card";
 
 export const dynamic = "force-dynamic";
 
@@ -12,26 +13,21 @@ export default async function DashboardPage() {
   const session = await auth();
   const userId = session?.user?.id ?? "";
 
-  const [stats, stream] = await Promise.all([
-    serverApi<{
-      totalDonations: number;
-      paidDonations: number;
-      queuedMedia: number;
-      totalReceived: number;
-    }>("/dashboard/stats", userId).catch(() => null),
-    serverApi<{ streamKey: string }>("/stream-settings", userId).catch(() => null),
-  ]);
-
-  const widgetUrl = stream?.streamKey
-    ? `${process.env.NEXT_PUBLIC_APP_URL}/widgets/mediashare?streamKey=${stream.streamKey}`
-    : null;
+  const stats = await serverApi<{
+    totalDonations: number;
+    paidDonations: number;
+    queuedMedia: number;
+    totalReceived: number;
+  }>("/dashboard/stats", userId).catch(() => null);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Hello, {session?.user?.name ?? "Creator"} 👋</h1>
+        <h1 className="text-2xl font-bold">
+          Hello, {session?.user?.name ?? "Creator"} 👋
+        </h1>
         <p className="text-muted-foreground">
-          A summary of your support &amp; media share.
+          Overview of your account &amp; support.
         </p>
       </div>
 
@@ -63,21 +59,9 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {widgetUrl && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Widget URL
-              <Badge variant="success">Active</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <code className="block break-all rounded-lg bg-muted p-3 text-sm">
-              {widgetUrl}
-            </code>
-          </CardContent>
-        </Card>
-      )}
+      <ProfileCard />
+
+      <WithdrawForm />
     </div>
   );
 }

@@ -31,6 +31,7 @@ import (
 	"mediashare/backend/internal/users"
 	"mediashare/backend/internal/wallets"
 	"mediashare/backend/internal/widgets"
+	"mediashare/backend/internal/withdrawals"
 )
 
 func main() {
@@ -41,7 +42,15 @@ func main() {
 		os.Exit(1)
 	}
 	if cfg.InternalAPIToken == "" {
-		slog.Warn("INTERNAL_API_TOKEN kosong — endpoint internal DIBLOKIR")
+		slog.Error("INTERNAL_API_TOKEN kosong — endpoint internal DIBLOKIR")
+		os.Exit(1)
+	}
+	if strings.HasPrefix(cfg.InternalAPIToken, "CHANGE_ME") {
+		if cfg.AppEnv == "production" {
+			slog.Error("INTERNAL_API_TOKEN masih placeholder — WAJIB diganti sebelum production")
+			os.Exit(1)
+		}
+		slog.Warn("INTERNAL_API_TOKEN masih placeholder (CHANGE_ME) — ganti sebelum production")
 	}
 
 	db, err := database.Connect(cfg.DatabaseURL)
@@ -118,12 +127,13 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 	widgetsH := &widgets.Handler{DB: db, Hub: hub, PublicBaseURL: cfg.PublicBaseURL}
 	settingsH := &streamsettings.Handler{DB: db}
 	adminH := &admin.Handler{DB: db}
+	withdrawalsH := &withdrawals.Handler{DB: db, Plisio: plisioClient}
 
 	// ---- Public (rate limited) ----
 	api.POST("/auth/register", middleware.RateLimit(10, time.Minute), authH.Register)
 	api.POST("/auth/login", middleware.RateLimit(10, time.Minute), authH.Login)
 
-	api.GET("/users/:username", usersH.PublicProfile)
+	api.GET("/users/:username", middleware.RateLimit(120, time.Minute), usersH.PublicProfile)
 	api.POST("/donations", middleware.RateLimit(10, time.Minute), donationsH.Create)
 
 	// ---- Plisio webhook (HMAC verified, rate limited) ----
@@ -147,21 +157,23 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 
 	// ---- Internal (hanya dari Next.js server via INTERNAL_API_TOKEN) ----
 	internal := api.Group("", middleware.InternalAuth(cfg.InternalAPIToken))
+	internal.Use(middleware.RateLimit(300, time.Minute))
 	internal.POST("/auth/verify-credentials", middleware.RateLimit(30, time.Minute), authH.VerifyCredentials)
 	internal.POST("/auth/oauth", middleware.RateLimit(30, time.Minute), authH.OAuthLogin)
 
 	// Backfill crypto lama (protected oleh INTERNAL_API_TOKEN).
-	internal.POST("/dev/backfill-crypto", paymentsH.DevBackfill)
+	internal.POST("/dev/backfill-crypto", middleware.RateLimit(10, time.Minute), paymentsH.DevBackfill)
 
 	authed := internal.Group("", middleware.UserID())
+	authed.Use(middleware.RateLimitUser(600, time.Minute))
 	authed.GET("/auth/me", authH.Me)
 	authed.GET("/users/me", authH.Me)
-	authed.PATCH("/users/me", usersH.UpdateMe)
+	authed.PATCH("/users/me", middleware.RateLimitUser(30, time.Minute), usersH.UpdateMe)
 	authed.GET("/dashboard/stats", adminH.DashboardStats)
 
 	// ---- Admin (khusus role ADMIN) ----
-	authed.GET("/admin/users", adminH.ListUsers)
-	authed.GET("/admin/stats", adminH.GlobalStats)
+	authed.GET("/admin/users", middleware.RateLimitUser(120, time.Minute), adminH.ListUsers)
+	authed.GET("/admin/stats", middleware.RateLimitUser(120, time.Minute), adminH.GlobalStats)
 
 	authed.GET("/wallet", walletsH.Summary)
 	authed.GET("/wallet/transactions", walletsH.Transactions)
@@ -170,13 +182,17 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 	authed.GET("/donations/:id", donationsH.Get)
 
 	authed.GET("/media", mediaH.List)
-	authed.POST("/media/test", mediaH.Test)
-	authed.POST("/media/:id/approve", mediaH.Approve)
-	authed.POST("/media/:id/reject", mediaH.Reject)
+	authed.POST("/media/test", middleware.RateLimitUser(30, time.Minute), mediaH.Test)
+	authed.POST("/media/:id/approve", middleware.RateLimitUser(60, time.Minute), mediaH.Approve)
+	authed.POST("/media/:id/reject", middleware.RateLimitUser(60, time.Minute), mediaH.Reject)
 
 	authed.GET("/stream-settings", settingsH.Get)
-	authed.PATCH("/stream-settings", settingsH.Update)
-	authed.POST("/stream-settings/regenerate-key", settingsH.RegenerateKey)
+	authed.PATCH("/stream-settings", middleware.RateLimitUser(60, time.Minute), settingsH.Update)
+	authed.POST("/stream-settings/regenerate-key", middleware.RateLimitUser(30, time.Minute), settingsH.RegenerateKey)
+
+	// ---- Withdraw ----
+	authed.POST("/withdrawals", middleware.RateLimitUser(10, time.Minute), withdrawalsH.Create)
+	authed.GET("/withdrawals", withdrawalsH.List)
 
 	r.GET("/healthz", func(c *gin.Context) {
 		sqlDB, _ := db.DB()

@@ -24,7 +24,7 @@ const POLL_MS = 3000;
 type PaymentStatus = {
   orderId: string;
   status: string;
-  plisioStatus?: string;
+  gatewayStatus?: string;
   currency?: string;
   cryptoAmount?: string;
   pendingAmount?: string;
@@ -77,7 +77,7 @@ export default function PaymentPage() {
   const required = num(data?.cryptoAmount);
   const received = num(data?.receivedAmount);
   const pendingRemaining = num(data?.pendingAmount);
-  const ps = data?.plisioStatus;
+  const ps = data?.gatewayStatus;
 
   const isPaid = data?.status === "PAID";
   const isExpired = data?.status === "EXPIRED";

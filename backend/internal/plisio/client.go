@@ -174,6 +174,50 @@ func (c *Client) GetOperation(txnID string) (*Operation, error) {
 	return &resp.Data, nil
 }
 
+type WithdrawResult struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Status   string `json:"status"`
+	Currency string `json:"currency"`
+	Amount   string `json:"amount"`
+	Fee      string `json:"fee"`
+	TxURL    string `json:"tx_url"`
+	Message  string `json:"message"`
+}
+
+// Withdraw membuat cash-out crypto via API (bukan invoice).
+// currency: BTC/ETH/..., to: alamat tujuan, amount: nominal crypto.
+func (c *Client) Withdraw(currency, to, amount, feePlan string) (*WithdrawResult, error) {
+	q := url.Values{}
+	q.Set("api_key", c.APIKey)
+	q.Set("currency", currency)
+	q.Set("type", "cash_out")
+	q.Set("to", to)
+	q.Set("amount", amount)
+	if feePlan != "" {
+		q.Set("feePlan", feePlan)
+	}
+	body, err := c.request("/operations/withdraw", q)
+	if err != nil {
+		return nil, err
+	}
+	var resp struct {
+		Status string         `json:"status"`
+		Data   WithdrawResult `json:"data"`
+	}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, err
+	}
+	if resp.Status != "success" {
+		var apiErr APIError
+		if json.Unmarshal(body, &apiErr) == nil {
+			return &resp.Data, &apiErr
+		}
+		return &resp.Data, fmt.Errorf("withdraw failed: %s", string(body))
+	}
+	return &resp.Data, nil
+}
+
 // Currency memuat daftar crypto yang didukung Plisio.
 // fiat menentukan rate dasar (misal "USD"). Kosong = tanpa rate fiat.
 func (c *Client) GetCurrencies(fiat string) ([]Currency, error) {

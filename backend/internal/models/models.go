@@ -143,6 +143,37 @@ type StreamSetting struct {
 	UpdatedAt       time.Time `json:"updatedAt"`
 }
 
+const (
+	WithdrawalPending   = "PENDING"
+	WithdrawalProcessing = "PROCESSING"
+	WithdrawalCompleted = "COMPLETED"
+	WithdrawalRejected  = "REJECTED"
+	WithdrawalFailed    = "FAILED"
+)
+
+type Withdrawal struct {
+	ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	UserID       uuid.UUID `gorm:"type:uuid;index;not null" json:"userId"`
+	Amount       int64     `gorm:"not null" json:"amount"` // USD cents
+	Currency     string    `gorm:"size:20;not null" json:"currency"`
+	ToAddress    string    `gorm:"size:200;not null" json:"toAddress"`
+	CryptoAmount string    `gorm:"size:50" json:"cryptoAmount"`
+	Fee          string    `gorm:"size:50" json:"fee"`
+	Status       string    `gorm:"size:20;not null;default:PENDING" json:"status"`
+	RefID        string    `gorm:"size:100" json:"refId"` // operation id dari API
+	TxURL        string    `gorm:"size:500" json:"txUrl"`
+	ErrorMessage string    `gorm:"size:500" json:"errorMessage"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+func (w *Withdrawal) BeforeCreate(tx *gorm.DB) error {
+	if w.ID == uuid.Nil {
+		w.ID = uuid.New()
+	}
+	return nil
+}
+
 type AuditLog struct {
 	ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	ActorID      uuid.UUID `gorm:"type:uuid;index" json:"actorId"`

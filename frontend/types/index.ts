@@ -39,6 +39,7 @@ export type WalletTransaction = {
 
 export type WalletSummary = {
   balance: number;
+  pending: number;
   totalReceived: number;
   currency: string;
 };
@@ -92,4 +93,16 @@ export type WidgetMedia = {
   mediaType: string;
   mediaUrl: string;
   duration: number;
+};
+
+export type Withdrawal = {
+  id: string;
+  amount: number;
+  currency: string;
+  cryptoAmount?: string;
+  toAddress: string;
+  status: string;
+  txUrl?: string;
+  errorMessage?: string;
+  createdAt: string;
 };

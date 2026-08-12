@@ -55,11 +55,16 @@ func (h *Handler) Currencies(c *gin.Context) {
 		if cur.Hidden == 1 || cur.Maintenance {
 			continue
 		}
+		code := cur.Currency
+		if code == "" {
+			code = cur.Cid
+		}
 		out = append(out, map[string]any{
 			"cid":      cur.Cid,
 			"currency": cur.Currency,
 			"name":     cur.Name,
-			"icon":     cur.Icon,
+			// Ikon disajikan statis dari public/, bukan URL eksternal.
+			"icon":     "/crypto-icons/" + code + ".svg",
 			"priceUsd": cur.PriceUSD,
 		})
 	}
@@ -164,7 +169,7 @@ func (h *Handler) Status(c *gin.Context) {
 	util.OK(c, gin.H{
 		"orderId":        payment.OrderID,
 		"status":         payment.Status,
-		"plisioStatus":   plisioStatus,
+		"gatewayStatus":   plisioStatus,
 		"currency":       currency,
 		"cryptoAmount":   cryptoAmount,
 		"pendingAmount":  pendingAmount,

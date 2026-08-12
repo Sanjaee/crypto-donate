@@ -41,15 +41,15 @@ type CryptoMethod = {
 // Fallback mapping if the /payments/currencies endpoint is not active yet
 // (Plisio needs an IP whitelist). The invoice is still really created by Plisio.
 const DEFAULT_METHODS: CryptoMethod[] = [
-  { cid: "BTC", currency: "BTC", name: "Bitcoin" },
-  { cid: "SOL", currency: "SOL", name: "Solana" },
-  { cid: "ETH", currency: "ETH", name: "Ethereum" },
-  { cid: "USDT", currency: "USDT", name: "Tether USD" },
-  { cid: "LTC", currency: "LTC", name: "Litecoin" },
-  { cid: "BCH", currency: "BCH", name: "Bitcoin Cash" },
-  { cid: "DOGE", currency: "DOGE", name: "Dogecoin" },
-  { cid: "BNB", currency: "BNB", name: "BNB" },
-  { cid: "XRP", currency: "XRP", name: "XRP" },
+  { cid: "BTC", currency: "BTC", name: "Bitcoin", icon: "/crypto-icons/BTC.svg" },
+  { cid: "SOL", currency: "SOL", name: "Solana", icon: "/crypto-icons/SOL.svg" },
+  { cid: "ETH", currency: "ETH", name: "Ethereum", icon: "/crypto-icons/ETH.svg" },
+  { cid: "USDT", currency: "USDT", name: "Tether USD", icon: "/crypto-icons/USDT.svg" },
+  { cid: "LTC", currency: "LTC", name: "Litecoin", icon: "/crypto-icons/LTC.svg" },
+  { cid: "BCH", currency: "BCH", name: "Bitcoin Cash", icon: "/crypto-icons/BCH.svg" },
+  { cid: "DOGE", currency: "DOGE", name: "Dogecoin", icon: "/crypto-icons/DOGE.svg" },
+  { cid: "BNB", currency: "BNB", name: "BNB", icon: "/crypto-icons/BNB.svg" },
+  { cid: "XRP", currency: "XRP", name: "XRP", icon: "/crypto-icons/XRP.svg" },
 ];
 
 // 3 main choices + "Other coins" from the currency mapping.
@@ -289,7 +289,7 @@ export default function DonatePage() {
                           <img
                             src={coin.icon}
                             alt={c}
-                            className="h-7 w-7 rounded-full"
+                            className="h-7 w-7 rounded-full" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
                           />
                         ) : (
                           <span className="text-lg font-extrabold">{c}</span>
@@ -318,7 +318,7 @@ export default function DonatePage() {
                           <img
                             src={otherCoin.icon}
                             alt={currency ?? ""}
-                            className="h-7 w-7 rounded-full"
+                            className="h-7 w-7 rounded-full" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
                           />
                         ) : otherSelected ? (
                           <span className="text-lg font-extrabold">
@@ -359,7 +359,7 @@ export default function DonatePage() {
                             <img
                               src={m.icon}
                               alt={m.name}
-                              className="h-5 w-5 rounded-full"
+                              className="h-5 w-5 rounded-full" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
                             />
                           ) : null}
                           {m.currency}

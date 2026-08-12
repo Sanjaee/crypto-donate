@@ -5,10 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Gift,
-  Wallet,
   Tv,
-  Settings,
-  User,
   Home,
   ExternalLink,
   LogOut,
@@ -19,11 +16,8 @@ import {
 const NAV = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/donations", label: "Donations", icon: Gift },
-  { href: "/dashboard/wallet", label: "Wallet", icon: Wallet },
   { href: "/dashboard/mediashare", label: "Media Share", icon: Tv },
   { href: "/dashboard/qr", label: "QR", icon: QrCode },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-  { href: "/dashboard/profile", label: "Profile", icon: User },
 ];
 
 const ADMIN_NAV = [

@@ -93,6 +93,40 @@ func RateLimit(limit int, window time.Duration) gin.HandlerFunc {
 	}
 }
 
+// RateLimitUser membatasi request per user (X-User-ID) + route.
+// Harus dipakai SETELAH middleware UserID.
+func RateLimitUser(limit int, window time.Duration) gin.HandlerFunc {
+	type bucket struct {
+		count    int
+		windowAt time.Time
+	}
+	var (
+		mu      sync.Mutex
+		buckets = make(map[string]*bucket)
+	)
+	return func(c *gin.Context) {
+		uid, _ := c.Get("userID")
+		key := "u:" + uid.(uuid.UUID).String() + "|" + c.FullPath()
+		now := time.Now()
+
+		mu.Lock()
+		b, ok := buckets[key]
+		if !ok || now.Sub(b.windowAt) > window {
+			b = &bucket{count: 0, windowAt: now}
+			buckets[key] = b
+		}
+		b.count++
+		count := b.count
+		mu.Unlock()
+
+		if count > limit {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "too many requests"})
+			return
+		}
+		c.Next()
+	}
+}
+
 func secureEqual(a, b string) bool {
 	if len(a) != len(b) {
 		return false
