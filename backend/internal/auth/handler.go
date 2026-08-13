@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"mediashare/backend/internal/logger"
 	"mediashare/backend/internal/models"
 	"mediashare/backend/internal/util"
 )
@@ -84,10 +85,12 @@ func (h *Handler) Register(c *gin.Context) {
 		Role:         h.roleForEmail(req.Email),
 	}
 	if err := createUserWithDefaults(h.DB, user); err != nil {
+		logger.From(c).Warn("auth.register_conflict", "email", req.Email)
 		util.Error(c, http.StatusConflict, "email or username already in use")
 		return
 	}
 
+	logger.From(c).Info("auth.register", "user_id", user.ID, "email", req.Email)
 	util.Created(c, sanitize(user))
 }
 
@@ -101,9 +104,11 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 	user, ok := h.verifyCredentials(req.Email, req.Password)
 	if !ok {
+		logger.From(c).Warn("auth.login_failed", "email", req.Email)
 		util.Error(c, http.StatusUnauthorized, "invalid email or password")
 		return
 	}
+	logger.From(c).Info("auth.login", "user_id", user.ID, "email", req.Email)
 	util.OK(c, sanitize(user))
 }
 
@@ -116,9 +121,11 @@ func (h *Handler) VerifyCredentials(c *gin.Context) {
 	}
 	user, ok := h.verifyCredentials(req.Email, req.Password)
 	if !ok {
+		logger.From(c).Warn("auth.verify_credentials_failed", "email", req.Email)
 		util.Error(c, http.StatusUnauthorized, "invalid email or password")
 		return
 	}
+	logger.From(c).Info("auth.verify_credentials", "user_id", user.ID, "email", req.Email)
 	util.OK(c, sanitize(user))
 }
 
@@ -138,6 +145,7 @@ func (h *Handler) OAuthLogin(c *gin.Context) {
 		if user.GoogleID == "" && req.GoogleID != "" {
 			h.DB.Model(&user).Updates(map[string]any{"google_id": req.GoogleID, "avatar_url": req.Avatar})
 		}
+		logger.From(c).Info("auth.oauth", "user_id", user.ID, "email", req.Email, "new", false)
 		util.OK(c, sanitize(&user))
 		return
 	}
@@ -160,6 +168,7 @@ func (h *Handler) OAuthLogin(c *gin.Context) {
 		util.InternalError(c, "failed to create account")
 		return
 	}
+	logger.From(c).Info("auth.oauth", "user_id", user.ID, "email", req.Email, "new", true)
 	util.OK(c, sanitize(&user))
 }
 

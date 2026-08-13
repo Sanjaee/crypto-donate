@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"mediashare/backend/internal/logger"
 	"mediashare/backend/internal/models"
 	"mediashare/backend/internal/plisio"
 	"mediashare/backend/internal/realtime"
@@ -40,13 +41,13 @@ type settlementInfo struct {
 // dari Plisio (sungguhan). Degrade gracefully bila belum dikonfigurasi.
 func (h *Handler) Currencies(c *gin.Context) {
 	if !plisio.IsConfigured(h.Plisio) {
-		slog.Warn("plisio not configured; currencies empty")
+		logger.From(c).Warn("plisio not configured; currencies empty")
 		util.OK(c, []any{})
 		return
 	}
 	cs, err := h.Plisio.GetCurrencies("")
 	if err != nil {
-		slog.Warn("plisio currencies error", "error", err)
+		logger.From(c).Warn("plisio currencies error", "error", err)
 		util.OK(c, []any{})
 		return
 	}
@@ -93,7 +94,7 @@ func (h *Handler) Status(c *gin.Context) {
 		plisio.IsConfigured(h.Plisio) {
 		op, err := h.Plisio.GetOperation(*payment.TransactionID)
 		if err != nil {
-			slog.Warn("payment.reconcile_error",
+			logger.From(c).Warn("payment.reconcile_error",
 				"order_id", orderID,
 				"txn_id", *payment.TransactionID,
 				"error", err.Error(),
@@ -102,7 +103,7 @@ func (h *Handler) Status(c *gin.Context) {
 			plisioStatus = op.Status
 			pendingAmount = op.PendingAmount
 			receivedAmount = op.ReceivedAmount
-			slog.Info("payment.reconcile",
+			logger.From(c).Info("payment.reconcile",
 				"order_id", orderID,
 				"txn_id", *payment.TransactionID,
 				"plisio_status", op.Status,
@@ -127,7 +128,7 @@ func (h *Handler) Status(c *gin.Context) {
 					},
 				}
 				if err := h.settle(payment, info); err != nil {
-					slog.Error("payment.reconcile_error", "order_id", orderID, "error", err)
+					logger.From(c).Error("payment.reconcile_error", "order_id", orderID, "error", err)
 				}
 				h.DB.Where("order_id = ?", orderID).First(&payment)
 			case "expired":
@@ -195,7 +196,7 @@ func (h *Handler) DevBackfill(c *gin.Context) {
 		}
 		op, err := h.Plisio.GetOperation(*p.TransactionID)
 		if err != nil || op == nil {
-			slog.Warn("backfill.skip", "txn", *p.TransactionID, "error", err)
+			logger.From(c).Warn("backfill.skip", "txn", *p.TransactionID, "error", err)
 			continue
 		}
 		h.DB.Table("ms_payment_transactions").Where("id = ?", p.ID).Update("raw_response", mustJSON(op))
@@ -204,7 +205,7 @@ func (h *Handler) DevBackfill(c *gin.Context) {
 				Updates(map[string]any{"crypto_amount": op.Amount, "currency": op.Currency})
 			updated++
 		}
-		slog.Info("backfill.ok", "order", p.OrderID, "amount", op.Amount, "currency", op.Currency)
+		logger.From(c).Info("backfill.ok", "order", p.OrderID, "amount", op.Amount, "currency", op.Currency)
 	}
 	util.OK(c, gin.H{"updated": updated})
 }
@@ -221,7 +222,7 @@ func (h *Handler) WebhookPlisio(c *gin.Context) {
 
 	m, err := h.Plisio.VerifyCallback(raw)
 	if err != nil {
-		slog.Warn("payment.verification_failed", "error", err)
+		logger.From(c).Warn("payment.verification_failed", "error", err)
 		util.Error(c, http.StatusBadRequest, "invalid callback")
 		return
 	}
@@ -237,7 +238,7 @@ func (h *Handler) WebhookPlisio(c *gin.Context) {
 
 	var payment models.PaymentTransaction
 	if err := h.DB.Where("order_id = ?", orderNumber).First(&payment).Error; err != nil {
-		slog.Warn("payment.unknown_order", "order_number", orderNumber)
+		logger.From(c).Warn("payment.unknown_order", "order_number", orderNumber)
 		util.Error(c, http.StatusNotFound, "order not found")
 		return
 	}
@@ -246,7 +247,7 @@ func (h *Handler) WebhookPlisio(c *gin.Context) {
 	if sa := toString(m["source_amount"]); sa != "" {
 		if f, err := strconv.ParseFloat(sa, 64); err == nil {
 			if int64(f) != payment.GrossAmount {
-				slog.Warn("payment.amount_mismatch", "order_number", orderNumber)
+				logger.From(c).Warn("payment.amount_mismatch", "order_number", orderNumber)
 				util.Error(c, http.StatusBadRequest, "amount mismatch")
 				return
 			}
@@ -270,16 +271,16 @@ func (h *Handler) WebhookPlisio(c *gin.Context) {
 		err = h.cancel(payment, info)
 	default:
 		// new / pending / pending internal — belum final.
-		slog.Info("payment.pending_update", "order_number", orderNumber, "status", status)
+		logger.From(c).Info("payment.pending_update", "order_number", orderNumber, "status", status)
 	}
 
 	if err != nil {
-		slog.Error("payment.webhook_error", "order_number", orderNumber, "error", err)
+		logger.From(c).Error("payment.webhook_error", "order_number", orderNumber, "error", err)
 		util.InternalError(c, "internal error")
 		return
 	}
 
-	slog.Info("payment.webhook", "order_number", orderNumber, "status", status)
+	logger.From(c).Info("payment.webhook", "order_number", orderNumber, "status", status)
 	util.OK(c, gin.H{"status": "ok"})
 }
 

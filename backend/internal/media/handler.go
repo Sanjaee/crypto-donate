@@ -1,12 +1,11 @@
 package media
 
 import (
-	"log/slog"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"mediashare/backend/internal/logger"
 	"mediashare/backend/internal/models"
 	"mediashare/backend/internal/realtime"
 	"mediashare/backend/internal/util"
@@ -57,7 +56,7 @@ func (h *Handler) Test(c *gin.Context) {
 	if h.Hub != nil {
 		h.Hub.Notify(id, []byte(`{"type":"media"}`))
 	}
-	slog.Info("media.test_queued", "media_id", media.ID, "user_id", id)
+	logger.From(c).Info("media.test_queued", "media_id", media.ID, "user_id", id)
 	util.OK(c, media)
 }
 

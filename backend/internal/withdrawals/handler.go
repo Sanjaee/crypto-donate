@@ -3,7 +3,6 @@ package withdrawals
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"mediashare/backend/internal/logger"
 	"mediashare/backend/internal/models"
 	"mediashare/backend/internal/plisio"
 	"mediashare/backend/internal/util"
@@ -94,7 +94,7 @@ func (h *Handler) Create(c *gin.Context) {
 	// Daftar currency + rate (dari mapping API).
 	currencies, err := h.Plisio.GetCurrencies("")
 	if err != nil {
-		slog.Warn("withdraw.currencies_error", "error", err)
+		logger.From(c).Warn("withdraw.currencies_error", "error", err)
 		util.InternalError(c, "currency rate unavailable")
 		return
 	}
@@ -159,7 +159,7 @@ func (h *Handler) Create(c *gin.Context) {
 			"status":        models.WithdrawalFailed,
 			"error_message": trimErr(msg),
 		})
-		slog.Warn("withdraw.api_failed", "user_id", uid, "amount", req.Amount, "err", msg)
+		logger.From(c).Warn("withdraw.api_failed", "user_id", uid, "amount", req.Amount, "error", msg)
 		h.audit(uid, w, "FAILED")
 		util.Error(c, http.StatusBadGateway, "withdrawal failed")
 		return
@@ -215,7 +215,7 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	h.audit(uid, w, "COMPLETED")
-	slog.Info("withdraw.completed", "user_id", uid, "amount", req.Amount, "currency", req.Currency)
+	logger.From(c).Info("withdraw.completed", "user_id", uid, "amount", req.Amount, "currency", req.Currency)
 
 	util.Created(c, toResponse(w))
 }

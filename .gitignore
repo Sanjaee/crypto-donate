@@ -21,6 +21,8 @@ backend/bin/
 *.log
 npm-debug.log*
 
+# PLG data (nama volume Docker, bukan file lokal)
+
 # Editor / OS
 .DS_Store
 Thumbs.db

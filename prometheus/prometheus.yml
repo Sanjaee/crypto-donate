@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Metrik host/VPS: CPU, RAM, disk, network, load.
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Metrik GPU NVIDIA (utilisasi, memori, suhu, daya, fan).
+  - job_name: nvidia-gpu
+    static_configs:
+      - targets: ["nvidia-gpu-exporter:9400"]
+
+  # Self-metrics Loki & Grafana (reliability monitoring).
+  - job_name: loki
+    static_configs:
+      - targets: ["loki:3100"]
+
+  - job_name: grafana
+    static_configs:
+      - targets: ["grafana:3000"]

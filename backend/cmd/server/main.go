@@ -21,6 +21,7 @@ import (
 	"mediashare/backend/internal/config"
 	"mediashare/backend/internal/database"
 	"mediashare/backend/internal/donations"
+	"mediashare/backend/internal/logger"
 	"mediashare/backend/internal/media"
 	"mediashare/backend/internal/middleware"
 	"mediashare/backend/internal/models"
@@ -36,6 +37,7 @@ import (
 
 func main() {
 	cfg := config.Load()
+	logger.Init(cfg.AppEnv)
 
 	if cfg.DatabaseURL == "" {
 		slog.Error("DATABASE_URL wajib diisi")
@@ -103,6 +105,8 @@ func setupRouter(cfg *config.Config, db *gorm.DB, plisioClient *plisio.Client) *
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestID())
+	r.Use(logger.Middleware())
+	r.Use(middleware.RequestLog())
 
 	// CORS — hanya origin terdaftar.
 	r.Use(cors.New(cors.Config{

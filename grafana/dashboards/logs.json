@@ -1,0 +1,73 @@
+{
+  "title": "MediaShare - PLG Logs",
+  "uid": "plg-logs",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "tags": ["plg", "logging"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Log volume by service",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        { "expr": "sum(count_over_time({job=\"api\"} [1m]))", "legendFormat": "api" },
+        { "expr": "sum(count_over_time({job=\"nextjs\"} [1m]))", "legendFormat": "nextjs" },
+        { "expr": "sum(count_over_time({job=\"nginx\"} [1m]))", "legendFormat": "nginx" },
+        { "expr": "sum(count_over_time({job=\"postgres\"} [1m]))", "legendFormat": "postgres" }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 10, "stacking": { "mode": "none" } } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Errors & warnings (api)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        { "expr": "sum(count_over_time({job=\"api\"} |= `\"level\":\"ERROR\"` [1m]))", "legendFormat": "ERROR" },
+        { "expr": "sum(count_over_time({job=\"api\"} |= `\"level\":\"WARN\"` [1m]))", "legendFormat": "WARN" }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 10, "stacking": { "mode": "none" } } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "Log explorer",
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        { "expr": "{job=~\"api|nextjs|nginx\"} |= `$search`", "refId": "A" }
+      ],
+      "options": {
+        "showTime": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "search",
+        "type": "textbox",
+        "label": "Search",
+        "query": "",
+        "current": { "text": "", "value": "" }
+      }
+    ]
+  }
+}

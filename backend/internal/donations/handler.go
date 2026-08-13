@@ -3,7 +3,6 @@ package donations
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"mediashare/backend/internal/config"
+	"mediashare/backend/internal/logger"
 	"mediashare/backend/internal/models"
 	"mediashare/backend/internal/plisio"
 	"mediashare/backend/internal/util"
@@ -140,7 +140,7 @@ func (h *Handler) Create(c *gin.Context) {
 
 	inv, err := h.createInvoice(req, gross, orderID, user.Username)
 	if err != nil {
-		slog.Error("donation.create_invoice_error", "order_id", orderID, "error", err)
+		logger.From(c).Error("donation.create_invoice_error", "order_id", orderID, "error", err)
 		h.DB.Model(payment).Update("raw_response", mustJSON(map[string]any{"error": err.Error()}))
 		util.Error(c, http.StatusBadGateway, "failed to create crypto invoice")
 		return

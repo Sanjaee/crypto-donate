@@ -1,0 +1,125 @@
+{
+  "title": "MediaShare - GPU Monitoring (NVIDIA)",
+  "uid": "gpu-monitoring",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "tags": ["gpu", "metrics"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "GPU Utilization",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_GPU_UTIL" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "GPU Memory Used",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_FB_USED" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "mib", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": null } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "GPU Temperature",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_GPU_TEMP" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "celsius", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 85 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Memory Copy Utilization",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_MEM_COPY_UTIL" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "GPU Utilization (over time)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_GPU_UTIL", "legendFormat": "{{modelName}} ({{gpu}})" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "custom": { "fillOpacity": 15, "stacking": { "mode": "none" } } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "GPU Memory Used (over time)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_FB_USED", "legendFormat": "{{modelName}} ({{gpu}})" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "mib", "custom": { "fillOpacity": 15, "stacking": { "mode": "none" } } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "GPU Temperature (over time)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_GPU_TEMP", "legendFormat": "{{modelName}} ({{gpu}})" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "celsius", "custom": { "fillOpacity": 15, "stacking": { "mode": "none" } } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Encoder / Decoder Utilization",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "DCGM_FI_DEV_ENC_UTIL", "legendFormat": "Encoder ({{gpu}})" },
+        { "refId": "B", "expr": "DCGM_FI_DEV_DEC_UTIL", "legendFormat": "Decoder ({{gpu}})" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "custom": { "fillOpacity": 15, "stacking": { "mode": "none" } } },
+        "overrides": []
+      }
+    }
+  ],
+  "templating": { "list": [] }
+}

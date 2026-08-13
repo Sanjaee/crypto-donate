@@ -8,6 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
+	"mediashare/backend/internal/logger"
 )
 
 const (
@@ -56,7 +58,25 @@ func UserID() gin.HandlerFunc {
 			return
 		}
 		c.Set("userID", id)
+		logger.With(c, "user_id", id)
 		c.Next()
+	}
+}
+
+// RequestLog mencatat akses log HTTP terstruktur (request_id, method, path,
+// status, durasi, IP, user agent). Harus dijalankan setelah logger.Middleware().
+func RequestLog() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		logger.From(c).Info("http_request",
+			"method", c.Request.Method,
+			"path", c.FullPath(),
+			"status", c.Writer.Status(),
+			"duration_ms", time.Since(start).Milliseconds(),
+			"ip", ClientIP(c),
+			"user_agent", c.Request.UserAgent(),
+		)
 	}
 }
 
