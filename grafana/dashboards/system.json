@@ -38,11 +38,11 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Disk Usage (/)",
+      "title": "Disk Usage",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "expr": "100 - (node_filesystem_avail_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} * 100)" }
+        { "refId": "A", "expr": "100 - (node_filesystem_avail_bytes{mountpoint=\"$mountpoint\"} / node_filesystem_size_bytes{mountpoint=\"$mountpoint\"} * 100)" }
       ],
       "fieldConfig": {
         "defaults": { "unit": "percent", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 90 } ] } },
@@ -114,8 +114,8 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "expr": "node_filesystem_size_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"}", "legendFormat": "Total" },
-        { "refId": "B", "expr": "node_filesystem_avail_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"}", "legendFormat": "Available" }
+        { "refId": "A", "expr": "node_filesystem_size_bytes{mountpoint=\"$mountpoint\"}", "legendFormat": "Total" },
+        { "refId": "B", "expr": "node_filesystem_avail_bytes{mountpoint=\"$mountpoint\"}", "legendFormat": "Available" }
       ],
       "fieldConfig": {
         "defaults": { "unit": "bytes", "custom": { "fillOpacity": 15, "stacking": { "mode": "none" } } },
@@ -123,5 +123,21 @@
       }
     }
   ],
-  "templating": { "list": [] }
+  "templating": {
+    "list": [
+      {
+        "name": "mountpoint",
+        "label": "Disk (mountpoint)",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(node_filesystem_size_bytes{fstype!~\"tmpfs|overlay|iso9660|cgroup2|devpts|devtmpfs|nsfs|proc|sysfs|rootfs|fuse.*|squashfs\"}, mountpoint)",
+        "definition": "label_values(node_filesystem_size_bytes{fstype!~\"tmpfs|overlay|iso9660|cgroup2|devpts|devtmpfs|nsfs|proc|sysfs|rootfs|fuse.*|squashfs\"}, mountpoint)",
+        "refresh": 2,
+        "sort": 2,
+        "current": { "text": "/mnt/docker-desktop-disk", "value": "/mnt/docker-desktop-disk" },
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  }
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +36,7 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 function GoogleLoginDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [loading, setLoading] = useState(false);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
@@ -48,10 +50,18 @@ function GoogleLoginDialog({ open, onOpenChange }: { open: boolean; onOpenChange
           <Button
             size="lg"
             className="w-full gap-3 bg-white text-foreground shadow hover:bg-white/90"
-            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+            disabled={loading}
+            onClick={() => {
+              setLoading(true);
+              signIn("google", { callbackUrl: "/dashboard" });
+            }}
           >
-            <GoogleIcon className="h-5 w-5" />
-            Continue with Google
+            {loading ? (
+              <LoaderCircle className="h-5 w-5 animate-spin" />
+            ) : (
+              <GoogleIcon className="h-5 w-5" />
+            )}
+            {loading ? "Signing in..." : "Continue with Google"}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
             By signing in, you agree to TipChain&apos;s terms of service.

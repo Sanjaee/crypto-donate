@@ -22,6 +22,8 @@ export default async function DonationsPage() {
     () => null,
   );
 
+  const successfulDonations = donations?.filter((d) => d.paymentStatus === "PAID") ?? [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,16 +37,16 @@ export default async function DonationsPage() {
             <Skeleton key={i} className="h-40 w-full" />
           ))}
         </div>
-      ) : donations.length === 0 ? (
+      ) : successfulDonations.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            No donations yet. Share your{" "}
+            No successful donations yet. Share your{" "}
             <span className="font-mono">/donate/username</span> page!
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {donations.map((d) => (
+          {successfulDonations.map((d) => (
             <Card key={d.id} className="flex flex-col">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
