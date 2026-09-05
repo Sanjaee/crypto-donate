@@ -170,21 +170,30 @@ func (h *Handler) NextMedia(c *gin.Context) {
 	}
 
 	var donation models.Donation
+	if err := h.DB.Select("donor_name, amount, message").Where("id = ?", media.DonationID).First(&donation).Error; err != nil {
+		util.OK(c, mediaResponse{
+			ID:        media.ID.String(),
+			DonorName: "",
+			Amount:    0,
+			Message:   "",
+			MediaType: media.MediaType,
+			MediaURL:  media.MediaURL,
+			Duration:  media.Duration,
+		})
+		return
+	}
+
+	// Gunakan data dinamis dari database
 	donorName := donation.DonorName
-	amount := donation.Amount
-	message := donation.Message
-	if err := h.DB.Select("donor_name, amount, message").Where("id = ?", media.DonationID).First(&donation).Error; err != nil || donorName == "" {
-		// Media demo/test (tanpa donation): tampilkan contoh donor.
-		donorName = "Mumu"
-		amount = 1000 // $10.00
-		message = "Demo — test the widget"
+	if donorName == "" {
+		donorName = "Someone"
 	}
 
 	util.OK(c, mediaResponse{
 		ID:        media.ID.String(),
 		DonorName: donorName,
-		Amount:    amount,
-		Message:   message,
+		Amount:    donation.Amount,
+		Message:   donation.Message,
 		MediaType: media.MediaType,
 		MediaURL:  media.MediaURL,
 		Duration:  media.Duration,

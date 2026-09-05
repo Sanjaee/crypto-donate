@@ -17,16 +17,10 @@ export default function WidgetClient({
 }) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [media, setMedia] = useState<WidgetMedia | null>(null);
-  const [demoVisible, setDemoVisible] = useState(demo);
+
+
   const playingRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Demo hanya tampil 10 detik.
-  useEffect(() => {
-    if (!demo) return;
-    const t = setTimeout(() => setDemoVisible(false), 10000);
-    return () => clearTimeout(t);
-  }, [demo]);
 
   // Play a sound when media arrives (payment confirmed).
   useEffect(() => {
@@ -38,7 +32,7 @@ export default function WidgetClient({
 
   // Fetch display config once.
   useEffect(() => {
-    if (demo || !streamKey) return;
+    if (!streamKey) return;
     fetch(
       `/api/widgets/mediashare/config?streamKey=${encodeURIComponent(streamKey)}`,
     )
@@ -49,7 +43,7 @@ export default function WidgetClient({
 
   // Realtime via SSE + fallback polling lambat (15s) sebagai jaring pengaman.
   useEffect(() => {
-    if (demo || !streamKey) return;
+    if (!streamKey) return;
     let stopped = false;
     let es: EventSource | null = null;
     let timer: ReturnType<typeof setInterval> | undefined;
@@ -80,7 +74,7 @@ export default function WidgetClient({
       );
       es.addEventListener("media", claim);
     } catch {
-      // SSE gagal — andalkan fallback polling.
+      // SSE gagal â€” andalkan fallback polling.
     }
 
     // Fallback polling lambat.
@@ -125,30 +119,7 @@ export default function WidgetClient({
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-transparent">
       <audio ref={audioRef} src="/bgm.mp3" preload="auto" />
-      {demoVisible ? (
-        // Mode demo: video tm.mp4 full-screen + contoh donor (10 detik)
-        <div className="absolute inset-0">
-          <video
-            src="/tm.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="h-full w-full object-cover"
-          />
-          <div className="absolute inset-x-0 bottom-0 flex justify-center px-4 pb-6">
-            <div className="w-full max-w-3xl rounded-lg bg-primary px-8 py-4 text-center shadow-2xl">
-              <p className="text-xl font-bold text-primary-foreground">
-                Mumu just gave{" "}
-                <span className="font-extrabold">$10.00</span>
-              </p>
-              <p className="mt-0.5 text-base text-primary-foreground/90">
-                Keep up the great work! 🔥
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : media ? (
+      {media ? (
         <div className="absolute inset-0 flex animate-fade-in-up items-center justify-center">
           <div className="w-full max-w-3xl px-4">
             {isYouTube(media.mediaType) && media.mediaUrl ? (

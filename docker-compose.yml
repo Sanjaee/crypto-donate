@@ -68,92 +68,92 @@ services:
       - "127.0.0.1:5432:5432"
 
   # ==================== PLG Logging Stack ====================
-  loki:
-    image: grafana/loki:3.4.1
-    restart: unless-stopped
-    command: -config.file=/etc/loki/local-config.yaml
-    ports:
-      - "127.0.0.1:3100:3100"
-    volumes:
-      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
-      - loki_data:/loki
-
-  promtail:
-    image: grafana/promtail:3.4.1
-    restart: unless-stopped
-    command: -config.file=/etc/promtail/config.yml
-    volumes:
-      - ./promtail/promtail-config.yaml:/etc/promtail/config.yml:ro
-      # Docker socket untuk auto-discovery & scrape log container.
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    depends_on:
-      - loki
-
-  grafana:
-    image: grafana/grafana:11.6.0
-    restart: unless-stopped
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
-    ports:
-      - "127.0.0.1:3001:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-    depends_on:
-      - loki
-      - prometheus
-
-  # ==================== Metrics Monitoring Stack ====================
-  # Prometheus: penyimpanan metrik (scrape dari exporter di bawah).
-  prometheus:
-    image: prom/prometheus:v3.1.0
-    restart: unless-stopped
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=30d
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    depends_on:
-      - node-exporter
-      - nvidia-gpu-exporter
-
-  # Node Exporter: metrik host (CPU, RAM, disk, network, load) dari Docker VM / VPS.
-  node-exporter:
-    image: prom/node-exporter:v1.8.2
-    restart: unless-stopped
-    command:
-      - --path.procfs=/host/proc
-      - --path.sysfs=/host/sys
-      - --path.rootfs=/host/root
-      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
-      - --collector.filesystem.fs-types-exclude=^(tmpfs|overlay|squashfs|autofs|binfmt_misc)$
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/host/root:ro
-
-  # NVIDIA GPU Exporter: metrik GPU (utilisasi, memori, suhu, daya) via DCGM.
-  nvidia-gpu-exporter:
-    image: nvidia/dcgm-exporter:latest
-    restart: unless-stopped
-    environment:
-      NVIDIA_VISIBLE_DEVICES: all
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+#  loki:
+#    image: grafana/loki:3.4.1
+#    restart: unless-stopped
+#    command: -config.file=/etc/loki/local-config.yaml
+#    ports:
+#      - "127.0.0.1:3100:3100"
+#    volumes:
+#      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+#      - loki_data:/loki
+#
+#  promtail:
+#    image: grafana/promtail:3.4.1
+#    restart: unless-stopped
+#    command: -config.file=/etc/promtail/config.yml
+#    volumes:
+#      - ./promtail/promtail-config.yaml:/etc/promtail/config.yml:ro
+#      # Docker socket untuk auto-discovery & scrape log container.
+#      - /var/run/docker.sock:/var/run/docker.sock:ro
+#    depends_on:
+#      - loki
+#
+#  grafana:
+#    image: grafana/grafana:11.6.0
+#    restart: unless-stopped
+#    environment:
+#      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+#      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+#      GF_USERS_ALLOW_SIGN_UP: "false"
+#      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+#    ports:
+#      - "127.0.0.1:3001:3000"
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+#      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+#      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+#    depends_on:
+#      - loki
+#      - prometheus
+#
+#  # ==================== Metrics Monitoring Stack ====================
+#  # Prometheus: penyimpanan metrik (scrape dari exporter di bawah).
+#  prometheus:
+#    image: prom/prometheus:v3.1.0
+#    restart: unless-stopped
+#    command:
+#      - --config.file=/etc/prometheus/prometheus.yml
+#      - --storage.tsdb.path=/prometheus
+#      - --storage.tsdb.retention.time=30d
+#    volumes:
+#      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#      - prometheus_data:/prometheus
+#    depends_on:
+#      - node-exporter
+#      - nvidia-gpu-exporter
+#
+#  # Node Exporter: metrik host (CPU, RAM, disk, network, load) dari Docker VM / VPS.
+#  node-exporter:
+#    image: prom/node-exporter:v1.8.2
+#    restart: unless-stopped
+#    command:
+#      - --path.procfs=/host/proc
+#      - --path.sysfs=/host/sys
+#      - --path.rootfs=/host/root
+#      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+#      - --collector.filesystem.fs-types-exclude=^(tmpfs|overlay|squashfs|autofs|binfmt_misc)$
+#    volumes:
+#      - /proc:/host/proc:ro
+#      - /sys:/host/sys:ro
+#      - /:/host/root:ro
+#
+#  # NVIDIA GPU Exporter: metrik GPU (utilisasi, memori, suhu, daya) via DCGM.
+#  nvidia-gpu-exporter:
+#    image: nvidia/dcgm-exporter:latest
+#    restart: unless-stopped
+#    environment:
+#      NVIDIA_VISIBLE_DEVICES: all
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: all
+#              capabilities: [gpu]
 
 volumes:
   postgres_data:
-  loki_data:
-  grafana_data:
-  prometheus_data:
+#  loki_data:
+#  grafana_data:
+#  prometheus_data:
