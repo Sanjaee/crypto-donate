@@ -171,12 +171,12 @@ func (h *Handler) NextMedia(c *gin.Context) {
 
 	var donation models.Donation
 	if err := h.DB.Select("donor_name, amount, message").Where("id = ?", media.DonationID).First(&donation).Error; err != nil {
-		donorName := "Ahmad"
 		var user models.User
+		donorName := ""
 		if err := h.DB.Select("name, username").Where("id = ?", setting.UserID).First(&user).Error; err == nil {
 			if user.Name != "" {
 				donorName = user.Name
-			} else if user.Username != "" {
+			} else {
 				donorName = user.Username
 			}
 		}
