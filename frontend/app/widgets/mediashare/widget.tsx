@@ -10,19 +10,16 @@ function isYouTube(type: string) {
 
 export default function WidgetClient({
   streamKey,
-  demo = false,
 }: {
   streamKey: string;
-  demo?: boolean;
 }) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [media, setMedia] = useState<WidgetMedia | null>(null);
 
-
   const playingRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Play a sound when media arrives (payment confirmed).
+  // Play sound when media arrives (payment confirmed / test media).
   useEffect(() => {
     if (media?.id && audioRef.current) {
       audioRef.current.currentTime = 0;
@@ -41,7 +38,7 @@ export default function WidgetClient({
       .catch(() => {});
   }, [streamKey]);
 
-  // Realtime via SSE + fallback polling lambat (15s) sebagai jaring pengaman.
+  // Realtime via SSE + fallback polling (15s).
   useEffect(() => {
     if (!streamKey) return;
     let stopped = false;
@@ -63,22 +60,20 @@ export default function WidgetClient({
           playingRef.current = true;
         }
       } catch {
-        // abaikan
+        // ignore
       }
     }
 
-    // SSE: event "media" -> claim sekali (SKIP LOCKED, cegah double-play).
     try {
       es = new EventSource(
         `/api/widgets/mediashare/stream?streamKey=${encodeURIComponent(streamKey)}`,
       );
       es.addEventListener("media", claim);
     } catch {
-      // SSE gagal â€” andalkan fallback polling.
+      // ignore
     }
 
-    // Fallback polling lambat.
-    initial = setTimeout(claim, 2000);
+    initial = setTimeout(claim, 1000);
     timer = setInterval(claim, 15000);
 
     return () => {
@@ -89,7 +84,7 @@ export default function WidgetClient({
     };
   }, [streamKey]);
 
-  // Mark complete after the duration ends.
+  // Mark complete after duration ends.
   useEffect(() => {
     if (!media || !streamKey) return;
     const duration = Math.max(media.duration || 10, 3) * 1000;
@@ -116,51 +111,53 @@ export default function WidgetClient({
     );
   }
 
+  const showBanner = (config?.showDonorName ?? true) && (media?.donorName || media?.amount || media?.message);
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-transparent">
       <audio ref={audioRef} src="/bgm.mp3" preload="auto" />
       {media ? (
-        <div className="absolute inset-0 flex animate-fade-in-up items-center justify-center">
-          <div className="w-full max-w-3xl px-4">
+        <div className="relative h-full w-full">
+          {/* Full Screen Media Display */}
+          <div className="absolute inset-0 h-full w-full overflow-hidden">
             {isYouTube(media.mediaType) && media.mediaUrl ? (
-              <div className="aspect-video w-full overflow-hidden rounded-xl shadow-2xl">
-                <iframe
-                  src={`https://www.youtube.com/embed/${media.mediaUrl}?autoplay=1&controls=0&rel=0`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="h-full w-full"
-                  title="Media donation"
-                />
-              </div>
+              <iframe
+                src={`https://www.youtube.com/embed/${media.mediaUrl}?autoplay=1&controls=0&rel=0`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="h-full w-full border-none object-cover"
+                title="Media donation"
+              />
             ) : media.mediaUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={media.mediaUrl}
                 alt="Media donation"
-                className="mx-auto max-h-[60vh] rounded-xl object-contain shadow-2xl"
+                className="h-full w-full object-cover object-center"
               />
             ) : null}
+          </div>
 
-            {(config?.showDonorName ?? true) && media.donorName && (
-              <div className="mt-6 w-full rounded-lg bg-primary px-8 py-4 text-center shadow-2xl">
-                <p className="text-xl font-bold text-primary-foreground">
-                  {config?.showDonorName && media.donorName
-                    ? `${media.donorName} just gave `
-                    : ""}
-                  {config?.showAmount && (
-                    <span className="font-extrabold">
+          {/* Donation Alert Overlay Block (Image 2 style) */}
+          {showBanner && (
+            <div className="absolute bottom-10 left-1/2 z-50 w-11/12 max-w-2xl -translate-x-1/2 transform animate-fade-in-up">
+              <div className="rounded-2xl bg-amber-500 px-8 py-4 text-center shadow-2xl backdrop-blur-md">
+                <p className="text-2xl font-bold text-white drop-shadow-md sm:text-3xl">
+                  {media.donorName ? `${media.donorName} just gave ` : ""}
+                  {(config?.showAmount ?? true) && media.amount > 0 && (
+                    <span className="font-extrabold text-white">
                       {formatUSD(media.amount)}
                     </span>
                   )}
                 </p>
-                {config?.showMessage && media.message && (
-                  <p className="mt-0.5 text-base text-primary-foreground/90">
+                {(config?.showMessage ?? true) && media.message && (
+                  <p className="mt-1 text-base font-medium text-white/95 sm:text-lg">
                     {media.message}
                   </p>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

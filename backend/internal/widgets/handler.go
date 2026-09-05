@@ -173,9 +173,9 @@ func (h *Handler) NextMedia(c *gin.Context) {
 	if err := h.DB.Select("donor_name, amount, message").Where("id = ?", media.DonationID).First(&donation).Error; err != nil {
 		util.OK(c, mediaResponse{
 			ID:        media.ID.String(),
-			DonorName: "",
-			Amount:    0,
-			Message:   "",
+			DonorName: "Ahmad",
+			Amount:    1000,
+			Message:   "Demo — test the widget",
 			MediaType: media.MediaType,
 			MediaURL:  media.MediaURL,
 			Duration:  media.Duration,
