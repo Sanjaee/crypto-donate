@@ -10,8 +10,10 @@ function isYouTube(type: string) {
 
 export default function WidgetClient({
   streamKey,
+  demo = false,
 }: {
   streamKey: string;
+  demo?: boolean;
 }) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [media, setMedia] = useState<WidgetMedia | null>(null);
