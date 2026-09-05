@@ -33,4 +33,9 @@ Thumbs.db
 # Uploads
 frontend/public/uploads/
 
+# Graphify artifacts
+graphify-out/
+GRAPH_REPORT.md
+
 # Co-authored by: MediaShare
+

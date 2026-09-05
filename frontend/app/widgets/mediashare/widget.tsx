@@ -142,18 +142,21 @@ export default function WidgetClient({
 
           {/* Donation Alert Overlay Block (Image 2 style) */}
           {showBanner && (
-            <div className="absolute bottom-10 left-1/2 z-50 w-11/12 max-w-2xl -translate-x-1/2 transform animate-fade-in-up">
-              <div className="rounded-2xl bg-amber-500 px-8 py-4 text-center shadow-2xl backdrop-blur-md">
-                <p className="text-2xl font-bold text-white drop-shadow-md sm:text-3xl">
-                  {media.donorName ? `${media.donorName} just gave ` : ""}
+            <div className="absolute bottom-0 left-0 right-0 z-50 w-full animate-fade-in-up">
+              <div className="bg-amber-400 px-4 py-3 text-center shadow-lg">
+                <p className="text-xl font-mono text-gray-900">
+                  {media.donorName && (
+                    <span className="text-blue-600">{media.donorName} </span>
+                  )}
+                  {media.donorName ? "baru saja memberikan " : ""}
                   {(config?.showAmount ?? true) && media.amount > 0 && (
-                    <span className="font-extrabold text-white">
+                    <span className="text-blue-600">
                       {formatUSD(media.amount)}
                     </span>
                   )}
                 </p>
                 {(config?.showMessage ?? true) && media.message && (
-                  <p className="mt-1 text-base font-medium text-white/95 sm:text-lg">
+                  <p className="mt-1 text-lg font-mono text-gray-900 uppercase">
                     {media.message}
                   </p>
                 )}
