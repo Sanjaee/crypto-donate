@@ -26,13 +26,9 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
-      # URL internal Go (di dalam Docker network, BUKAN localhost).
       API_INTERNAL_URL: http://api:8080/api
-      # URL publik yang dipakai browser (nginx port 80). Untuk production
-      # ganti ke domain, mis. https://domain.com. Redirect URI Google yang
-      # didaftarkan di Google Cloud Console harus
-      # AUTH_URL + /api/auth/callback/google
-      AUTH_URL: http://localhost
+      AUTH_URL: ${AUTH_URL:-https://tipchain.lostmedia.pro}
+      AUTH_TRUST_HOST: "true"
     depends_on:
       - api
 
