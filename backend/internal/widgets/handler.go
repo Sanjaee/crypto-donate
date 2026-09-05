@@ -171,9 +171,18 @@ func (h *Handler) NextMedia(c *gin.Context) {
 
 	var donation models.Donation
 	if err := h.DB.Select("donor_name, amount, message").Where("id = ?", media.DonationID).First(&donation).Error; err != nil {
+		donorName := "Ahmad"
+		var user models.User
+		if err := h.DB.Select("name, username").Where("id = ?", setting.UserID).First(&user).Error; err == nil {
+			if user.Name != "" {
+				donorName = user.Name
+			} else if user.Username != "" {
+				donorName = user.Username
+			}
+		}
 		util.OK(c, mediaResponse{
 			ID:        media.ID.String(),
-			DonorName: "Ahmad",
+			DonorName: donorName,
 			Amount:    1000,
 			Message:   "Demo — test the widget",
 			MediaType: media.MediaType,
