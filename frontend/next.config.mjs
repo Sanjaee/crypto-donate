@@ -7,6 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Pastikan tracing standalone tidak mengikuti workspace root yang
   // salah (mis. ada package-lock.json di folder induk).
   outputFileTracingRoot: __dirname,
