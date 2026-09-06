@@ -3,10 +3,14 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://tipchain.lostmedia.pro}
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://tipchain.lostmedia.pro/api}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
+        API_INTERNAL_URL: http://sawer-api:8080/api
+
     container_name: sawer-nextjs
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     env_file:
       - .env
     environment:
@@ -14,26 +18,55 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
       API_INTERNAL_URL: http://sawer-api:8080/api
-      AUTH_URL: ${AUTH_URL:-https://tipchain.lostmedia.pro}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       AUTH_TRUST_HOST: "true"
     networks:
       - media_backend
+
 
   api:
     build:
       context: ./backend
     container_name: sawer-api
     restart: unless-stopped
+    ports:
+      - "8080:8080"
     env_file:
       - .env
     environment:
       APP_ENV: production
       PORT: 8080
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:supersecretpassword30charslong123@postgres:5432/mediashare?sslmode=disable}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://mediashare:mediashare_pass@postgres:5432/mediashare?sslmode=disable}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - media_backend
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: sawer-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mediashare}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-supersecretpassword30charslong123}
+    volumes:
+      - postgres_sawer_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - media_backend
+
 
 networks:
   media_backend:
     external: true
+
+volumes:
+  postgres_sawer_data:
+
 

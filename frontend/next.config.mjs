@@ -22,23 +22,27 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    // Development: hanya endpoint Go yang di-forward (Auth.js /api/auth/*
-    // tetap dilayani Next.js, jangan di-rewrite).
-    if (process.env.NODE_ENV === "development") {
-      const target = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
-      return [
-        { source: "/api/auth/register", destination: `${target}/auth/register` },
-        { source: "/api/auth/login", destination: `${target}/auth/login` },
-        { source: "/api/users/:path*", destination: `${target}/users/:path*` },
-        { source: "/api/donations", destination: `${target}/donations` },
-        { source: "/api/donations/:path*", destination: `${target}/donations/:path*` },
-        { source: "/api/webhooks/:path*", destination: `${target}/webhooks/:path*` },
-        { source: "/api/widgets/:path*", destination: `${target}/widgets/:path*` },
-        { source: "/api/payments/:path*", destination: `${target}/payments/:path*` },
-      ];
-    }
-    return [];
+    const target = process.env.API_INTERNAL_URL || "http://sawer-api:8080/api";
+
+    return [
+      { source: "/api/auth/register", destination: `${target}/auth/register` },
+      { source: "/api/auth/login", destination: `${target}/auth/login` },
+      { source: "/api/users/:path*", destination: `${target}/users/:path*` },
+      { source: "/api/donations", destination: `${target}/donations` },
+      { source: "/api/donations/:path*", destination: `${target}/donations/:path*` },
+      { source: "/api/webhooks/:path*", destination: `${target}/webhooks/:path*` },
+      { source: "/api/widgets/:path*", destination: `${target}/widgets/:path*` },
+      { source: "/api/payments/:path*", destination: `${target}/payments/:path*` },
+      { source: "/api/admin/:path*", destination: `${target}/admin/:path*` },
+      { source: "/api/stream-settings", destination: `${target}/stream-settings` },
+      { source: "/api/stream-settings/:path*", destination: `${target}/stream-settings/:path*` },
+      { source: "/api/wallet", destination: `${target}/wallet` },
+      { source: "/api/wallet/:path*", destination: `${target}/wallet/:path*` },
+      { source: "/api/withdrawals", destination: `${target}/withdrawals` },
+      { source: "/api/media/:path*", destination: `${target}/media/:path*` },
+    ];
   },
+
   async headers() {
     return [
       {
