@@ -36,7 +36,8 @@ services:
     environment:
       APP_ENV: production
       PORT: 8080
-      DATABASE_URL: ${DATABASE_URL:-postgresql://mediashare:mediashare_pass@postgres:5432/mediashare?sslmode=disable}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:supersecretpassword30charslong123@sawer-postgres:5432/mediashare?sslmode=disable}
+
     depends_on:
       postgres:
         condition: service_healthy
