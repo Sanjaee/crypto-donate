@@ -199,7 +199,7 @@ export default function WidgetClient({
                     {activeMedia.donorName}{" "}
                   </span>
                 )}
-                {activeMedia.donorName ? "baru saja memberikan " : ""}
+                {activeMedia.donorName ? "just donated " : ""}
                 {(config?.showAmount ?? true) && activeMedia.amount > 0 && (
                   <span className="text-[#3b82f6] font-extrabold">
                     {formatUSD(activeMedia.amount)}
