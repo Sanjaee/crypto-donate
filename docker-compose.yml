@@ -36,38 +36,16 @@ services:
     environment:
       APP_ENV: production
       PORT: 8080
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:supersecretpassword30charslong123@sawer-postgres:5432/mediashare?sslmode=disable}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:supersecretpassword30charslong123@media-postgres-prod:5432/mediashare?sslmode=disable}
 
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - media_backend
 
-  postgres:
-    image: postgres:17-alpine
-    container_name: sawer-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-mediashare}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-supersecretpassword30charslong123}
-    volumes:
-      - postgres_sawer_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - media_backend
+
 
 
 networks:
   media_backend:
     external: true
 
-volumes:
-  postgres_sawer_data:
-
-
+volumes: {}
