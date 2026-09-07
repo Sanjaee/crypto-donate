@@ -69,6 +69,7 @@ export type StreamSetting = {
   showAmount: boolean;
   qrBgColor?: string;
   qrColor?: string;
+  donationTiers?: { amount: number; duration: number }[];
 };
 
 export type PublicProfile = {
@@ -89,6 +90,8 @@ export type WidgetMedia = {
   id: string;
   donorName: string;
   amount: number;
+  cryptoAmount?: string;
+  currency?: string;
   message: string;
   mediaType: string;
   mediaUrl: string;

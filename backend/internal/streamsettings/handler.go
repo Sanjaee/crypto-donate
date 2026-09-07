@@ -3,6 +3,7 @@ package streamsettings
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -56,6 +57,7 @@ type updateRequest struct {
 	ShowAmount      *bool  `json:"showAmount"`
 	QRBgColor       *string `json:"qrBgColor"`
 	QRColor         *string `json:"qrColor"`
+	DonationTiers   json.RawMessage `json:"donationTiers"`
 }
 
 // Update PATCH /stream-settings.
@@ -113,6 +115,16 @@ func (h *Handler) Update(c *gin.Context) {
 	if req.QRColor != nil {
 		if v := strings.TrimSpace(*req.QRColor); v != "" {
 			updates["qr_color"] = v
+		}
+	}
+	if req.DonationTiers != nil {
+		var tiers []map[string]any
+		if err := json.Unmarshal(req.DonationTiers, &tiers); err == nil {
+			if len(tiers) > 5 {
+				util.BadRequest(c, "max 5 duration tiers allowed")
+				return
+			}
+			updates["donation_tiers"] = req.DonationTiers
 		}
 	}
 	if len(updates) == 0 {

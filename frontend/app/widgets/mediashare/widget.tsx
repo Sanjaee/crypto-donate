@@ -25,6 +25,8 @@ const DEMO_MEDIA: WidgetMedia = {
   id: "demo-1",
   donorName: "Someguy",
   amount: 69420,
+  cryptoAmount: "0.010744561",
+  currency: "SOL",
   message: "THIS IS A FAKE MESSAGE! HAVE A GOOD ONE",
   mediaType: "youtube",
   mediaUrl: "dQw4w9WgXcQ",
@@ -192,25 +194,41 @@ export default function WidgetClient({
 
           {/* Saweria Style Bottom Donation Banner */}
           {showBanner && (
-            <div className="w-full bg-[#fba919] py-3 px-4 text-center shadow-lg shrink-0 border-t border-amber-600/30 font-mono z-50">
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
-                {activeMedia.donorName && (
-                  <span className="text-[#3b82f6] font-extrabold">
-                    {activeMedia.donorName}{" "}
-                  </span>
-                )}
-                {activeMedia.donorName ? "just donated " : ""}
-                {(config?.showAmount ?? true) && activeMedia.amount > 0 && (
-                  <span className="text-[#3b82f6] font-extrabold">
-                    {formatUSD(activeMedia.amount)}
-                  </span>
-                )}
-              </p>
-              {(config?.showMessage ?? true) && activeMedia.message && (
-                <p className="mt-0.5 text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-wide break-words">
-                  {activeMedia.message}
+            <div className="relative w-full">
+              <style>{`
+                @keyframes shrinkWidth {
+                  from { width: 100%; }
+                  to { width: 0%; }
+                }
+              `}</style>
+              <div
+                className="absolute top-0 left-0 h-1.5 bg-red-600 z-[60]"
+                style={{
+                  animation: `shrinkWidth ${Math.max(activeMedia.duration || 10, 3)}s linear forwards`
+                }}
+              />
+              <div className="w-full bg-[#fba919] py-3 px-4 text-center shadow-lg shrink-0 border-t border-amber-600/30 font-mono z-50">
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
+                  {activeMedia.donorName && (
+                    <span className="text-[#3b82f6] font-extrabold">
+                      {activeMedia.donorName}{" "}
+                    </span>
+                  )}
+                  {activeMedia.donorName ? "just donated " : ""}
+                  {(config?.showAmount ?? true) && (activeMedia.amount > 0 || activeMedia.cryptoAmount) && (
+                    <span className="text-[#3b82f6] font-extrabold">
+                      {activeMedia.cryptoAmount && activeMedia.currency
+                        ? `${activeMedia.cryptoAmount} ${activeMedia.currency}`
+                        : formatUSD(activeMedia.amount)}
+                    </span>
+                  )}
                 </p>
-              )}
+                {(config?.showMessage ?? true) && activeMedia.message && (
+                  <p className="mt-0.5 text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-wide break-words">
+                    {activeMedia.message}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

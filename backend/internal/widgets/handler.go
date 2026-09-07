@@ -62,12 +62,14 @@ func (h *Handler) QRData(c *gin.Context) {
 
 type mediaResponse struct {
 	ID        string `json:"id"`
-	DonorName string `json:"donorName"`
-	Amount    int64  `json:"amount"`
-	Message   string `json:"message"`
-	MediaType string `json:"mediaType"`
-	MediaURL  string `json:"mediaUrl"`
-	Duration  int    `json:"duration"`
+	DonorName    string `json:"donorName"`
+	Amount       int64  `json:"amount"`
+	CryptoAmount string `json:"cryptoAmount,omitempty"`
+	Currency     string `json:"currency,omitempty"`
+	Message      string `json:"message"`
+	MediaType    string `json:"mediaType"`
+	MediaURL     string `json:"mediaUrl"`
+	Duration     int    `json:"duration"`
 }
 
 type widgetConfig struct {
@@ -170,7 +172,7 @@ func (h *Handler) NextMedia(c *gin.Context) {
 	}
 
 	var donation models.Donation
-	if err := h.DB.Select("donor_name, amount, message").Where("id = ?", media.DonationID).First(&donation).Error; err != nil {
+	if err := h.DB.Select("donor_name, amount, crypto_amount, currency, message").Where("id = ?", media.DonationID).First(&donation).Error; err != nil {
 		var user models.User
 		donorName := ""
 		if err := h.DB.Select("name, username").Where("id = ?", setting.UserID).First(&user).Error; err == nil {
@@ -199,13 +201,15 @@ func (h *Handler) NextMedia(c *gin.Context) {
 	}
 
 	util.OK(c, mediaResponse{
-		ID:        media.ID.String(),
-		DonorName: donorName,
-		Amount:    donation.Amount,
-		Message:   donation.Message,
-		MediaType: media.MediaType,
-		MediaURL:  media.MediaURL,
-		Duration:  media.Duration,
+		ID:           media.ID.String(),
+		DonorName:    donorName,
+		Amount:       donation.Amount,
+		CryptoAmount: donation.CryptoAmount,
+		Currency:     donation.Currency,
+		Message:      donation.Message,
+		MediaType:    media.MediaType,
+		MediaURL:     media.MediaURL,
+		Duration:     media.Duration,
 	})
 }
 

@@ -39,3 +39,5 @@ GRAPH_REPORT.md
 
 # Co-authored by: MediaShare
 
+# Local overrides
+docker-compose.yml

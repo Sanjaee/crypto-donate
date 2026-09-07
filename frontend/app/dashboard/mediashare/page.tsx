@@ -88,6 +88,7 @@ export default function TipChainPage() {
         body: JSON.stringify({
           minimumDonation: setting.minimumDonation,
           defaultDuration: setting.defaultDuration,
+          donationTiers: setting.donationTiers || [],
           youtubeEnabled: setting.youtubeEnabled,
           tiktokEnabled: setting.tiktokEnabled,
           gifEnabled: setting.gifEnabled,
@@ -197,6 +198,73 @@ export default function TipChainPage() {
                 }
               />
             </div>
+          </div>
+
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <Label>Duration Tiers (max 5)</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const current = setting.donationTiers || [];
+                  if (current.length < 5) {
+                    setSetting({
+                      ...setting,
+                      donationTiers: [...current, { amount: 100, duration: 60 }],
+                    });
+                  }
+                }}
+                disabled={(setting.donationTiers?.length || 0) >= 5}
+              >
+                Add Tier
+              </Button>
+            </div>
+            {(setting.donationTiers || []).map((tier, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div className="flex-1 space-y-1.5">
+                  <Label className="text-xs">Amount</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={tier.amount}
+                    onChange={(e) => {
+                      const newTiers = [...(setting.donationTiers || [])];
+                      newTiers[index] = { ...tier, amount: Number(e.target.value) };
+                      setSetting({ ...setting, donationTiers: newTiers });
+                    }}
+                  />
+                  <p className="text-[10px] text-muted-foreground">{formatUSD(tier.amount)}</p>
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <Label className="text-xs">Duration (seconds)</Label>
+                  <Input
+                    type="number"
+                    min={3}
+                    value={tier.duration}
+                    onChange={(e) => {
+                      const newTiers = [...(setting.donationTiers || [])];
+                      newTiers[index] = { ...tier, duration: Number(e.target.value) };
+                      setSetting({ ...setting, donationTiers: newTiers });
+                    }}
+                  />
+                  <p className="text-[10px] text-transparent hidden sm:block">spacer</p>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="mt-2"
+                  onClick={() => {
+                    const newTiers = [...(setting.donationTiers || [])];
+                    newTiers.splice(index, 1);
+                    setSetting({ ...setting, donationTiers: newTiers });
+                  }}
+                >
+                  <span className="sr-only">Remove</span>
+                  &times;
+                </Button>
+              </div>
+            ))}
           </div>
 
           {[

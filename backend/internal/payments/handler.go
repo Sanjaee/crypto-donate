@@ -348,8 +348,29 @@ func (h *Handler) settle(p models.PaymentTransaction, info settlementInfo) error
 			Duration:   10,
 		}
 		var setting models.StreamSetting
-		if err := tx.Where("user_id = ?", donation.UserID).First(&setting).Error; err == nil && setting.DefaultDuration > 0 {
-			media.Duration = setting.DefaultDuration
+		if err := tx.Where("user_id = ?", donation.UserID).First(&setting).Error; err == nil {
+			if setting.DefaultDuration > 0 {
+				media.Duration = setting.DefaultDuration
+			}
+			if len(setting.DonationTiers) > 0 && string(setting.DonationTiers) != "[]" && string(setting.DonationTiers) != "null" {
+				var tiers []struct {
+					Amount   int64 `json:"amount"`
+					Duration int   `json:"duration"`
+				}
+				if err := json.Unmarshal(setting.DonationTiers, &tiers); err == nil {
+					var bestDuration int
+					var maxMatchedAmount int64 = -1
+					for _, t := range tiers {
+						if donation.Amount >= t.Amount && t.Amount > maxMatchedAmount {
+							maxMatchedAmount = t.Amount
+							bestDuration = t.Duration
+						}
+					}
+					if bestDuration > 0 {
+						media.Duration = bestDuration
+					}
+				}
+			}
 		}
 		if err := tx.Create(media).Error; err != nil {
 			return err

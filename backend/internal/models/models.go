@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -139,10 +140,11 @@ type StreamSetting struct {
 	ShowDonorName   bool      `gorm:"not null;default:true" json:"showDonorName"`
 	ShowMessage     bool      `gorm:"not null;default:true" json:"showMessage"`
 	ShowAmount      bool      `gorm:"not null;default:true" json:"showAmount"`
-	QRBgColor       string    `gorm:"size:20;default:#F7931A" json:"qrBgColor"` // default bg = primary
-	QRColor         string    `gorm:"size:20;default:#000000" json:"qrColor"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	QRBgColor       string          `gorm:"size:20;default:#F7931A" json:"qrBgColor"` // default bg = primary
+	QRColor         string          `gorm:"size:20;default:#000000" json:"qrColor"`
+	DonationTiers   json.RawMessage `gorm:"type:jsonb;default:'[]'" json:"donationTiers"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
 }
 
 const (
