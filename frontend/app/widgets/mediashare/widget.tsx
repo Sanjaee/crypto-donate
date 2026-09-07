@@ -224,7 +224,7 @@ export default function WidgetClient({
                   )}
                 </p>
                 {(config?.showMessage ?? true) && activeMedia.message && (
-                  <p className="mt-0.5 text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-wide break-words">
+                  <p className="mt-0.5 text-2xl sm:text-3xl font-extrabold text-white uppercase tracking-wide break-words drop-shadow-md">
                     {activeMedia.message}
                   </p>
                 )}

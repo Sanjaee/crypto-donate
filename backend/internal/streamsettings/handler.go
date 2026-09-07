@@ -80,8 +80,8 @@ func (h *Handler) Update(c *gin.Context) {
 		updates["minimum_donation"] = *req.MinimumDonation
 	}
 	if req.DefaultDuration != nil {
-		if *req.DefaultDuration < 3 || *req.DefaultDuration > 120 {
-			util.BadRequest(c, "duration must be between 3-120 seconds")
+		if *req.DefaultDuration < 3 {
+			util.BadRequest(c, "duration must be at least 3 seconds")
 			return
 		}
 		updates["default_duration"] = *req.DefaultDuration

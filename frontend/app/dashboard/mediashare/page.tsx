@@ -176,10 +176,11 @@ export default function TipChainPage() {
               <Label>Minimum Donation (USD)</Label>
               <Input
                 type="number"
+                step="0.01"
                 min={0}
-                value={setting.minimumDonation}
+                value={setting.minimumDonation / 100}
                 onChange={(e) =>
-                  setSetting({ ...setting, minimumDonation: Number(e.target.value) })
+                  setSetting({ ...setting, minimumDonation: Math.round(Number(e.target.value) * 100) })
                 }
               />
               <p className="text-xs text-muted-foreground">
@@ -191,7 +192,6 @@ export default function TipChainPage() {
               <Input
                 type="number"
                 min={3}
-                max={120}
                 value={setting.defaultDuration}
                 onChange={(e) =>
                   setSetting({ ...setting, defaultDuration: Number(e.target.value) })
@@ -226,11 +226,12 @@ export default function TipChainPage() {
                   <Label className="text-xs">Amount</Label>
                   <Input
                     type="number"
+                    step="0.01"
                     min={0}
-                    value={tier.amount}
+                    value={tier.amount / 100}
                     onChange={(e) => {
                       const newTiers = [...(setting.donationTiers || [])];
-                      newTiers[index] = { ...tier, amount: Number(e.target.value) };
+                      newTiers[index] = { ...tier, amount: Math.round(Number(e.target.value) * 100) };
                       setSetting({ ...setting, donationTiers: newTiers });
                     }}
                   />
